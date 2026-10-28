@@ -333,7 +333,7 @@ async function updateNavUserUI() {
     <div class="nav-user-badge">
       <i class="fa-solid fa-circle-user"></i> <span>${safeName}</span>
     </div>
-    <a href="dashboard.html" class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:6px;height:38px;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+    <a href="dashboard.html" class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:6px;height:40px;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
     <button id="btnNavLogout" class="btn btn-logout" title="Log Out"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
   `;
 

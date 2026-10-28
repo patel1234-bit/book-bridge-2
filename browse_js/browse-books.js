@@ -231,11 +231,11 @@ async function loadLiveBooksFromAPI() {
                 const sellerData = ab.seller || (ab.seller_details ? {
                     name: ab.seller_details.full_name || ab.seller_name || "Student Seller",
                     email: ab.seller_details.email || "student@rcti.ac.in",
-                    whatsapp: ab.seller_details.whatsapp || "+919876543210"
+                    whatsapp: ab.seller_details.whatsapp || ""
                 } : {
                     name: ab.seller_name || "Student Seller",
                     email: "student@rcti.ac.in",
-                    whatsapp: "+919876543210"
+                    whatsapp: ""
                 });
 
                 const normalized = {

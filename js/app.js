@@ -417,7 +417,7 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
     const rawCover = b.coverUrl || b.cover || b.image || b.cover_url;
     const coverImg = sanitizeUrl((rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : fallbackCover, fallbackCover);
     const isDigital = b.category === 'digital' && b.pdfUrl;
-    const waNumber = ((b.seller?.whatsapp || '+919876543210')).replace(/[^0-9]/g, '');
+    const waNumber = ''; // numbers are never exposed in the UI; contact goes through the consent-based chat
     const waMsg = encodeURIComponent(`Hi ${rawSellerName}, I found your book "${b.title || 'book'}" on BookBridge! Is it still available?`);
     const safePdfUrl = encodeURI(b.pdfUrl || '');
     const bookTitleEscaped = escapeHTML(b.title || 'Academic Book');
@@ -485,7 +485,7 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
           </div>
 
           <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-            <a href="https://wa.me/${waNumber}?text=${waMsg}" target="_blank" rel="noopener" class="btn-whatsapp-share" title="Chat on WhatsApp" onclick="return handleWhatsAppClick(event)">
+            <a href="#" class="btn-whatsapp-share" title="Chat with seller (WhatsApp is shared only after they approve)" onclick="return openSellerWhatsAppChat(event, '${safeId}')">
               <i class="fa-brands fa-whatsapp"></i> WhatsApp
             </a>
             ${isDigital ? `<button class="btn-pdf-view" onclick="openPDFModal('${escapeHTML(safePdfUrl)}', '${safeTitleForAttr}')">
@@ -512,6 +512,37 @@ window.handleWhatsAppClick = function(e) {
     return false;
   }
   return true;
+};
+
+/* 📱 OPEN SELLER CHAT (WhatsApp is unlocked inside chat after the seller approves) */
+window.openSellerWhatsAppChat = async function(e, bookId) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  if (window.handleWhatsAppClick && window.handleWhatsAppClick(e) === false) return false;
+  try {
+    const book = await window.BookAPI.getBookById(bookId);
+    if (!book) return false;
+    const seller = book.seller || {};
+    const sellerEmail = seller.email || book.sellerEmail || '';
+    if (!sellerEmail) { showToast('Seller contact is not available for this listing.', 'warning'); return false; }
+    const modal = document.getElementById('bookDetailsModal');
+    if (modal) modal.classList.remove('active');
+    if (typeof window.openBookBridgeeChat === 'function') {
+      window.openBookBridgeeChat({
+        receiverEmail: sellerEmail,
+        receiverName: seller.name || book.sellerName || 'Student',
+        receiverId: seller.id || book.sellerId || undefined,
+        bookId: book.id,
+        bookTitle: book.title,
+        bookPrice: book.price || 0,
+        mode: book.mode || 'sell',
+        bookImage: book.coverUrl || book.image || book.cover || ''
+      });
+      showToast('Chat opened. The seller can share their WhatsApp from the chat window.', 'info');
+    }
+  } catch (err) {
+    showToast('Could not open chat. Please try again.', 'warning');
+  }
+  return false;
 };
 
 /* ❤️ WISHLIST TOGGLE */
@@ -567,8 +598,8 @@ window.handleBookAction = async function(bookId, actionLabel) {
   if (!modal) return;
 
   titleEl.textContent = book.title;
-  const seller = book.seller || { name: 'Student', whatsapp: '+919876543210', email: 'student@rcti.ac.in' };
-  const waNumber = (seller.whatsapp || '+919876543210').replace(/[^0-9]/g, '');
+  const seller = book.seller || { name: 'Student', email: 'student@rcti.ac.in' };
+  const waNumber = ''; // numbers are never exposed in the UI; contact goes through the consent-based chat
   const ratingVal = seller.rating || book.rating || 4.8;
 
   const stars = Array.from({ length: 5 }, (_, i) =>
@@ -631,7 +662,9 @@ window.handleBookAction = async function(bookId, actionLabel) {
     </div>
   `;
 
-  waBtn.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(`Hi ${seller.name}, I'm interested in "${book.title}" on BookBridge!`)}`;
+  waBtn.href = '#';
+  waBtn.removeAttribute('target');
+  waBtn.onclick = (ev) => window.openSellerWhatsAppChat(ev, bookId);
   const isDonationMode = book.price === 0 || book.mode === 'donate';
   const isExchangeMode = book.mode === 'exchange';
   const resolvedConfirmLabel = isDonationMode ? 'Claim Book / Contact Donor' : (isExchangeMode ? 'Swap / Contact Student' : 'Buy Book / Contact Seller');
@@ -975,7 +1008,7 @@ async function initSellPage() {
           seller: {
             name: activeUser.name || 'Verified Student',
             email: activeUser.email || 'student@rcti.ac.in',
-            whatsapp: activeUser.whatsapp || '+919876543210'
+            whatsapp: activeUser.whatsapp || ''
           },
           isUserListed: true
         });

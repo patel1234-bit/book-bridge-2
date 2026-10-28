@@ -64,7 +64,7 @@ class BookSerializer(serializers.ModelSerializer):
                 'id': seller_obj.id,
                 'name': clean_name,
                 'email': seller_obj.email,
-                'whatsapp': getattr(seller_obj, 'whatsapp', None) or getattr(seller_obj, 'phone_number', None) or '+919876543210',
+                'whatsapp': getattr(seller_obj, 'whatsapp', None) or getattr(seller_obj, 'phone_number', None) or '',
                 'branch': instance.branch or 'CE'
             }
 

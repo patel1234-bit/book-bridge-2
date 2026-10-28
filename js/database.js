@@ -832,7 +832,7 @@ class OfficialRCTIDatabase {
         role: currentUser?.role || 'student',
         rating: 5.0,
         email: currentUser?.email || bookData.sellerEmail || 'student@rcti.ac.in',
-        whatsapp: bookData.sellerWhatsapp || currentUser?.whatsapp || '+919876543210'
+        whatsapp: bookData.sellerWhatsapp || currentUser?.whatsapp || ''
       },
       location: bookData.location || 'RCTI Campus, Ahmedabad',
       coverGradient: gradients[Math.floor(Math.random() * gradients.length)],

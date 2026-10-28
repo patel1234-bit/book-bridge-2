@@ -47,6 +47,9 @@ exports.getConversations = async (req, res, next) => {
           bookId: conv.bookId,
           book: conv.book,
           otherUser,
+          // Booleans only - the phone number itself is never included here
+          iApprovedWhatsapp: Boolean(isUser1 ? conv.user1ApprovedWhatsapp : conv.user2ApprovedWhatsapp),
+          partnerApprovedWhatsapp: Boolean(isUser1 ? conv.user2ApprovedWhatsapp : conv.user1ApprovedWhatsapp),
           lastMessageText: conv.lastMessageText,
           lastMessageAt: conv.lastMessageAt,
           unreadCount
@@ -99,8 +102,8 @@ exports.getOrCreateConversation = async (req, res, next) => {
     let conversation = await Conversation.findOne({
       where: whereClause,
       include: [
-        { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
-        { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
+        { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
+        { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
         { model: Book, as: 'book', attributes: ['id', 'title', 'price', 'mode', 'coverUrl'] }
       ]
     });
@@ -123,8 +126,8 @@ exports.getOrCreateConversation = async (req, res, next) => {
 
       conversation = await Conversation.findByPk(conversation.id, {
         include: [
-          { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
-          { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
+          { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
+          { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
           { model: Book, as: 'book', attributes: ['id', 'title', 'price', 'mode', 'coverUrl'] }
         ]
       });

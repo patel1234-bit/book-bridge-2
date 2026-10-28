@@ -560,6 +560,40 @@ async function runTests() {
       recordTest(23, 'WhatsApp consent handshake and listing Reserved/Sold updates succeed', false, e.message);
     }
 
+    // Test 24: Logged-in users never receive raw WhatsApp numbers in book or conversation payloads
+    try {
+      const authHdr = { Authorization: `Bearer ${studentToken}` };
+      const listRes = await request('GET', '/api/books', null, authHdr);
+      assert.strictEqual(listRes.status, 200, 'Book list returns 200 for logged-in user');
+      assert.strictEqual(listRes.data.some(b => b.sellerWhatsapp || (b.seller && b.seller.whatsapp)), false, 'Book list has no WhatsApp numbers');
+
+      const oneRes = await request('GET', `/api/books/${testBook.id}`, null, authHdr);
+      assert.strictEqual(oneRes.status, 200, 'Book details return 200');
+      assert.strictEqual(Boolean(oneRes.data.sellerWhatsapp || (oneRes.data.seller && oneRes.data.seller.whatsapp)), false, 'Book details have no WhatsApp number');
+
+      const convRes2 = await request('POST', '/api/conversations', { recipientId: sellerUser.id, bookId: testBook.id }, authHdr);
+      const convJson = JSON.stringify(convRes2.data || {});
+      assert.strictEqual(/"whatsapp"\s*:\s*"\+?\d+/.test(convJson), false, 'Conversation payload has no WhatsApp number');
+      recordTest(24, 'Logged-in users never receive raw WhatsApp numbers in books or conversations', true);
+    } catch (e) {
+      recordTest(24, 'Logged-in users never receive raw WhatsApp numbers in books or conversations', false, e.message);
+    }
+
+    // Test 25: Conversation list exposes consent flags (booleans only) for the chat UI
+    try {
+      const listRes = await request('GET', '/api/conversations', null, { Authorization: `Bearer ${studentToken}` });
+      assert.strictEqual(listRes.status, 200, 'Conversation list returns 200');
+      const conv = listRes.data.find(c => String(c.id) === String(testConversation.id));
+      assert(conv, 'Test conversation is listed');
+      assert.strictEqual(typeof conv.iApprovedWhatsapp, 'boolean', 'iApprovedWhatsapp is boolean');
+      assert.strictEqual(typeof conv.partnerApprovedWhatsapp, 'boolean', 'partnerApprovedWhatsapp is boolean');
+      assert.strictEqual(conv.partnerApprovedWhatsapp, true, 'Seller approval (test 23) is reflected for the buyer');
+      assert.strictEqual(JSON.stringify(conv).includes('whatsapp"'), false, 'No WhatsApp number in conversation list');
+      recordTest(25, 'Conversation list exposes WhatsApp consent flags without numbers', true);
+    } catch (e) {
+      recordTest(25, 'Conversation list exposes WhatsApp consent flags without numbers', false, e.message);
+    }
+
   } catch (error) {
     console.error('Fatal test error:', error);
   } finally {

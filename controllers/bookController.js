@@ -66,8 +66,9 @@ exports.getBooks = async (req, res, next) => {
     const isGuest = !req.user;
     const sanitized = books.map((book) => {
       const b = book.toJSON ? book.toJSON() : { ...book };
+      // WhatsApp numbers are never exposed in listings; use the consent-based chat flow
+      delete b.sellerWhatsapp;
       if (isGuest) {
-        delete b.sellerWhatsapp;
         delete b.sellerEmail;
       }
       return b;
@@ -90,7 +91,7 @@ exports.getBookById = async (req, res, next) => {
         {
           model: User,
           as: 'seller',
-          attributes: ['id', 'name', 'email', 'role', 'whatsapp', 'branch', 'semester', 'avatarUrl']
+          attributes: ['id', 'name', 'email', 'role', 'branch', 'semester', 'avatarUrl']
         }
       ]
     });
@@ -101,12 +102,13 @@ exports.getBookById = async (req, res, next) => {
 
     const isGuest = !req.user;
     const bookData = book.toJSON ? book.toJSON() : { ...book };
+    // WhatsApp numbers are never exposed in book details; use the consent-based chat flow
+    delete bookData.sellerWhatsapp;
+    if (bookData.seller) delete bookData.seller.whatsapp;
     if (isGuest) {
-      delete bookData.sellerWhatsapp;
       delete bookData.sellerEmail;
       if (bookData.seller) {
         delete bookData.seller.email;
-        delete bookData.seller.whatsapp;
       }
     }
 

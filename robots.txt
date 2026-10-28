@@ -4,4 +4,4 @@ Disallow: /admin
 Disallow: /api/admin
 Disallow: /django-admin/
 
-Sitemap: https://bookbridge.onrender.com/sitemap.xml
+Sitemap: https://book-bridge-2-o57m.onrender.com/sitemap.xml

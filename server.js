@@ -44,8 +44,8 @@ const { JWT_SECRET } = require('./config/secret');
 
 // 1. Initialize Core Middleware & Security
 app.set('trust proxy', 1);
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.json({ limit: '10mb' })); // 5MB image becomes ~6.7MB as base64
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 configureSecurity(app);
 
 // 2. Initialize Socket.IO with Token Authentication
@@ -86,8 +86,17 @@ try {
 
     // Join conversation room with participant verification
     socket.on('joinConversation', async (conversationId) => {
-      if (!conversationId) return;
-      socket.join(`conversation_${conversationId}`);
+      if (!conversationId || !socket.user) return;
+      try {
+        const { Conversation } = require('./models');
+        const conv = Conversation ? await Conversation.findByPk(conversationId) : null;
+        if (!conv) return;
+        const uid = socket.user.id;
+        if (conv.user1Id !== uid && conv.user2Id !== uid && socket.user.role !== 'admin') return;
+        socket.join(`conversation_${conversationId}`);
+      } catch (e) {
+        console.warn('[Socket.IO] joinConversation check failed:', e.message);
+      }
     });
 
     socket.on('leaveConversation', (conversationId) => {
@@ -98,7 +107,7 @@ try {
 
     // Real-time typing indicators
     socket.on('typing', ({ conversationId, isTyping }) => {
-      if (conversationId && socket.user) {
+      if (conversationId && socket.user && socket.rooms.has(`conversation_${conversationId}`)) {
         socket.to(`conversation_${conversationId}`).emit('userTyping', {
           conversationId,
           userId: socket.user.id,
@@ -135,7 +144,18 @@ const serveStaticFile = (res, filename) => {
 };
 
 // 4. Serve Static Assets (CSS, JS, Images, Icons)
+// Never serve backend source, secrets, databases or dot-files from the project root
+const BLOCKED_STATIC = /^\/(\.|config\/|controllers\/|middleware\/|models\/|backend\/|data\/|tests\/|node_modules\/|\.git|\.env|server\.js|asgi\.py|wsgi\.py|manage\.py|tests\.py|package(-lock)?\.json|requirements\.txt|Dockerfile|docker-compose\.yml|pm2\.config\.js|server\.ps1|run-server\.bat)|\.(sqlite3?|sqlite-journal|py|sql|env|ps1|bat)$/i;
+app.use((req, res, next) => {
+  let p = req.path;
+  try { p = decodeURIComponent(p); } catch (e) { return res.status(400).end(); }
+  if (BLOCKED_STATIC.test(p) || p.includes('..')) {
+    return res.status(404).send('Not found');
+  }
+  next();
+});
 app.use(express.static(process.cwd(), {
+  dotfiles: 'deny',
   maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
   etag: true
 }));
@@ -206,8 +226,8 @@ app.get('/api/auth/verify-reset-token/:token', authController.verifyResetToken);
 app.post('/api/auth/reset-password', validateResetPasswordInput, authController.resetPassword);
 
 // 9. Book / Textbook Endpoints
-app.get('/api/books', bookController.getBooks);
-app.get('/api/books/:id', bookController.getBookById);
+app.get('/api/books', optionalAuth, bookController.getBooks);
+app.get('/api/books/:id', optionalAuth, bookController.getBookById);
 app.post('/api/books', authenticateToken, validateBookInput, (req, res, next) => bookController.createBook(req, res, next, io));
 app.put('/api/books/:id', authenticateToken, validateBookUpdate, (req, res, next) => bookController.updateBook(req, res, next, io));
 app.patch(['/api/books/:id/status', '/api/books/:id'], authenticateToken, validateBookUpdate, (req, res, next) => bookController.updateBook(req, res, next, io));
@@ -223,9 +243,12 @@ app.post(['/api/conversations/:id/whatsapp/approve', '/api/conversations/:id/sha
 app.post(['/api/conversations/:id/report', '/api/users/report'], authenticateToken, chatController.reportUser);
 app.post(['/api/conversations/:id/block', '/api/users/block'], authenticateToken, chatController.blockUser);
 
+app.get('/api/notifications', authenticateToken, chatController.getNotifications);
+app.put('/api/notifications/read', authenticateToken, chatController.markNotificationsRead);
+
 // Legacy Messaging API support (backward compatibility for existing frontend)
 app.get('/api/messages', authenticateToken, chatController.getLegacyMessages);
-app.post('/api/messages', authenticateToken, (req, res, next) => chatController.sendLegacyMessage(req, res, next, io));
+app.post('/api/messages', authenticateToken, validateMessageInput, (req, res, next) => chatController.sendLegacyMessage(req, res, next, io));
 
 // 11. Admin Endpoints (RBAC Enforced: Only Role 'admin')
 app.get('/api/admin/stats', authenticateToken, authorizeRoles('admin'), adminController.getStats);

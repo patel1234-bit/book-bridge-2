@@ -46,11 +46,11 @@ exports.validateBookInput = (req, res, next) => {
 
   if (mode) {
     const validModes = ['sell', 'exchange', 'donate', 'buy'];
-    if (!validModes.includes(mode.toLowerCase())) {
+    if (!validModes.includes(String(mode).toLowerCase())) {
       errors.push(`Mode must be one of: ${validModes.join(', ')}.`);
     }
 
-    if (mode.toLowerCase() === 'sell') {
+    if (String(mode).toLowerCase() === 'sell') {
       const numPrice = parseFloat(price);
       if (isNaN(numPrice) || numPrice < 0) {
         errors.push('Selling price must be a non-negative number.');
@@ -67,7 +67,7 @@ exports.validateBookInput = (req, res, next) => {
 
   if (condition) {
     const validConditions = ['Brand New', 'Like New', 'Excellent', 'Good', 'Fair'];
-    const matches = validConditions.some(c => c.toLowerCase() === condition.toLowerCase());
+    const matches = validConditions.some(c => c.toLowerCase() === String(condition).toLowerCase());
     if (!matches) {
       errors.push(`Condition must be one of: ${validConditions.join(', ')}.`);
     }
@@ -84,7 +84,7 @@ exports.validateBookInput = (req, res, next) => {
   // Sanitize values
   req.body.title = title.trim();
   req.body.author = author.trim();
-  if (req.body.mode) req.body.mode = req.body.mode.toLowerCase();
+  if (req.body.mode) req.body.mode = req.body.String(mode).toLowerCase();
   if (req.body.price !== undefined) req.body.price = parseFloat(req.body.price) || 0;
   if (req.body.semester) req.body.semester = parseInt(req.body.semester, 10);
 
@@ -108,10 +108,10 @@ exports.validateBookUpdate = (req, res, next) => {
 
   if (mode !== undefined) {
     const validModes = ['sell', 'exchange', 'donate', 'buy'];
-    if (!validModes.includes(mode.toLowerCase())) {
+    if (!validModes.includes(String(mode).toLowerCase())) {
       errors.push(`Mode must be one of: ${validModes.join(', ')}.`);
     }
-    if (mode.toLowerCase() === 'sell' && price !== undefined) {
+    if (String(mode).toLowerCase() === 'sell' && price !== undefined) {
       const numPrice = parseFloat(price);
       if (isNaN(numPrice) || numPrice < 0) {
         errors.push('Selling price must be a non-negative number.');
@@ -135,7 +135,7 @@ exports.validateBookUpdate = (req, res, next) => {
 
   if (condition !== undefined) {
     const validConditions = ['Brand New', 'Like New', 'Excellent', 'Good', 'Fair'];
-    const matches = validConditions.some(c => c.toLowerCase() === condition.toLowerCase());
+    const matches = validConditions.some(c => c.toLowerCase() === String(condition).toLowerCase());
     if (!matches) {
       errors.push(`Condition must be one of: ${validConditions.join(', ')}.`);
     }
@@ -151,7 +151,7 @@ exports.validateBookUpdate = (req, res, next) => {
 
   if (title) req.body.title = title.trim();
   if (author) req.body.author = author.trim();
-  if (mode) req.body.mode = mode.toLowerCase();
+  if (mode) req.body.mode = String(mode).toLowerCase();
   if (price !== undefined) req.body.price = parseFloat(price) || 0;
   if (semester) req.body.semester = parseInt(semester, 10);
 
@@ -294,7 +294,8 @@ exports.validateLoginInput = (req, res, next) => {
     });
   }
 
-  req.body.email = idValue.trim().toLowerCase();
+  // Only lowercase e-mails; enrollment numbers must keep their original case
+  req.body.email = idValue.includes('@') ? idValue.trim().toLowerCase() : idValue.trim();
   next();
 };
 
@@ -320,8 +321,8 @@ exports.validateForgotPasswordInput = (req, res, next) => {
  * Validates reset password execution
  */
 exports.validateResetPasswordInput = (req, res, next) => {
-  const { token, newPassword, password } = req.body;
-  const pass = newPassword || password;
+  const { token, newPassword, password, new_password } = req.body;
+  const pass = newPassword || new_password || password;
   const errors = [];
 
   if (!token || typeof token !== 'string' || token.trim().length < 32) {

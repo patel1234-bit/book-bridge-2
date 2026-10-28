@@ -477,5 +477,15 @@ window.BookAPI = {
 
   async getWishlistBooks() {
     return window.BookDB ? window.BookDB.getWishlistBooks() : [];
+  },
+
+  // ── REVIEWS / USER REMOVAL (previously called by app.js but not defined -> TypeError) ──
+
+  async addReview(sellerEmail, rating, comment) {
+    return window.BookDB ? window.BookDB.addReview(sellerEmail, rating, comment) : null;
+  },
+
+  async deleteUser(userId) {
+    return window.BookDB ? window.BookDB.deleteUser(userId) : null;
   }
 };

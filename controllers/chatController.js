@@ -74,7 +74,7 @@ exports.getOrCreateConversation = async (req, res, next) => {
 
     let targetUserId = recipientId;
 
-    if (!targetUserId && recipientEmail) {
+    if (!targetUserId && recipientEmail && typeof recipientEmail === 'string') {
       const targetUser = await User.findOne({ where: { email: recipientEmail.trim().toLowerCase() } });
       if (targetUser) targetUserId = targetUser.id;
     }
@@ -83,8 +83,18 @@ exports.getOrCreateConversation = async (req, res, next) => {
       return res.status(400).json({ error: 'Recipient user ID or email is required.' });
     }
 
-    if (parseInt(targetUserId, 10) === currentUserId) {
+    targetUserId = parseInt(targetUserId, 10);
+    if (isNaN(targetUserId)) {
+      return res.status(400).json({ error: 'Recipient user ID or email is required.' });
+    }
+
+    if (targetUserId === currentUserId) {
       return res.status(400).json({ error: 'You cannot start a conversation with yourself.' });
+    }
+
+    const targetExists = await User.findByPk(targetUserId, { attributes: ['id'] });
+    if (!targetExists) {
+      return res.status(404).json({ error: 'Recipient user account not found.' });
     }
 
     // Check if conversation already exists between these 2 users (optionally for this book)
@@ -158,11 +168,12 @@ exports.getMessages = async (req, res, next) => {
       return res.status(403).json({ error: 'Access denied. You are not a participant in this conversation.' });
     }
 
-    const messages = await Message.findAll({
+    // Newest 100 messages (so long chats still show recent ones), returned oldest -> newest
+    const messages = (await Message.findAll({
       where: { conversationId: id },
-      order: [['createdAt', 'ASC']],
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
       limit: 100
-    });
+    })).reverse();
 
     // Mark messages sent to current user as read
     await Message.update(
@@ -285,11 +296,11 @@ exports.getLegacyMessages = async (req, res, next) => {
       whereClause.conversationId = { [Op.in]: convIds };
     }
 
-    const messages = await Message.findAll({
+    const messages = (await Message.findAll({
       where: whereClause,
-      order: [['createdAt', 'ASC']],
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
       limit: 100
-    });
+    })).reverse();
 
     return res.json(messages);
   } catch (error) {
@@ -304,7 +315,10 @@ exports.sendLegacyMessage = async (req, res, next, io) => {
   try {
     const currentUserId = req.user.id;
     const { receiverEmail, receiver_email, text, bookTitle, book_title, bookId } = req.body;
-    const targetEmail = (receiverEmail || receiver_email || '').trim().toLowerCase();
+    const targetEmail = String(receiverEmail || receiver_email || '').trim().toLowerCase();
+    if (typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Message text cannot be empty.' });
+    }
 
     if (!targetEmail) {
       return res.status(400).json({ error: 'Receiver email is required.' });
@@ -592,6 +606,37 @@ exports.blockUser = async (req, res, next) => {
       success: true,
       message: 'User has been blocked.'
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+/**
+ * GET /api/notifications
+ * Latest notifications for the authenticated user (created when messages arrive)
+ */
+exports.getNotifications = async (req, res, next) => {
+  try {
+    const notifications = await Notification.findAll({
+      where: { userId: req.user.id },
+      order: [['createdAt', 'DESC']],
+      limit: 50
+    });
+    return res.json(notifications);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/notifications/read
+ * Marks all of the user's notifications as read
+ */
+exports.markNotificationsRead = async (req, res, next) => {
+  try {
+    await Notification.update({ isRead: true }, { where: { userId: req.user.id, isRead: false } });
+    return res.json({ success: true });
   } catch (error) {
     next(error);
   }

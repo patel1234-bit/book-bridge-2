@@ -269,30 +269,9 @@ exports.forgotPassword = async (req, res, next) => {
     // Look up user
     const user = await User.findOne({ where: { email: normalizedEmail } });
 
-    // Direct password reset if new_password is provided
-    if (newPass) {
-      if (!user) {
-        return res.status(404).json({
-          error: `No account found with email "${normalizedEmail}". Please create an account.`,
-          status: 404
-        });
-      }
-      if (newPass.length < 6) {
-        return res.status(400).json({
-          error: 'Password must be at least 6 characters long.',
-          status: 400
-        });
-      }
-      const hashedPassword = await bcrypt.hash(newPass, 12);
-      user.password = hashedPassword;
-      user.isActive = true;
-      await user.save();
-      return res.json({
-        status: 200,
-        message: `Password for ${user.email} updated successfully! You can now log in.`,
-        updated: true
-      });
-    }
+    // SECURITY: a password is never changed here without proof of mailbox ownership.
+    // Any supplied new password is ignored; the single-use emailed token flow below is the only reset path.
+    void newPass;
 
     if (user && user.isActive) {
       // Invalidate any previously active tokens for this user
@@ -380,7 +359,8 @@ exports.verifyResetToken = async (req, res, next) => {
  */
 exports.resetPassword = async (req, res, next) => {
   try {
-    const { token, newPassword } = req.body;
+    const { token } = req.body;
+    const newPassword = req.body.newPassword || req.body.new_password || req.body.password;
 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const resetRecord = await PasswordResetToken.findOne({

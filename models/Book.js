@@ -81,11 +81,11 @@ if (sequelize) {
       defaultValue: ''
     },
     coverUrl: {
-      type: DataTypes.STRING(500),
+      type: DataTypes.TEXT('medium'), // may hold an uploaded base64 image
       defaultValue: ''
     },
     pdfUrl: {
-      type: DataTypes.STRING(500),
+      type: DataTypes.TEXT('medium'),
       defaultValue: ''
     },
     status: {

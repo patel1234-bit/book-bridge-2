@@ -189,6 +189,10 @@ const SEED_BOOKS = [
 ];
 
 const seedDatabase = async () => {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PRODUCTION_SEED !== 'true') {
+    console.warn('[Seed] Refusing to create demo accounts (password123) in production. Set ALLOW_PRODUCTION_SEED=true to override.');
+    return false;
+  }
   try {
     await connectDB();
     await syncDatabase({ alter: false });

@@ -3,7 +3,7 @@
  * Enables offline capability and fast caching for PWA
  */
 
-const CACHE_NAME = 'bookbridge-v2.0';
+const CACHE_NAME = 'bookbridge-v2.1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -46,6 +46,9 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // Never cache live data: API (books, chats, notifications) and Socket.IO must always hit the network
+  const reqUrl = new URL(e.request.url);
+  if (reqUrl.pathname.startsWith('/api/') || reqUrl.pathname.startsWith('/socket.io/')) return;
   e.respondWith(
     caches.match(e.request).then((cached) => {
       const networked = fetch(e.request)

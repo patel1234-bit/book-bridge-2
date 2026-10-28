@@ -1190,6 +1190,31 @@
     else renderInboxList();
   }, 5000);
 
+  // Real-time delivery: connect to the server's Socket.IO and reuse the existing refresh event.
+  // Polling above stays as the fallback if the socket is unavailable.
+  function initRealtimeSocket() {
+    try {
+      const token = localStorage.getItem('bb_access_token');
+      if (!token || window.__bbChatSocket) return;
+      const connect = () => {
+        if (typeof window.io !== 'function') return;
+        const sock = window.io({ auth: { token }, transports: ['websocket', 'polling'] });
+        window.__bbChatSocket = sock;
+        const onIncoming = () => window.dispatchEvent(new CustomEvent('bookbridge:new-message'));
+        sock.on('chatNotification', onIncoming);
+        sock.on('newMessage', onIncoming);
+      };
+      if (typeof window.io === 'function') return connect();
+      const s = document.createElement('script');
+      s.src = '/socket.io/socket.io.js';
+      s.async = true;
+      s.onload = connect;
+      s.onerror = () => {}; // static hosting without a socket server: polling keeps working
+      document.head.appendChild(s);
+    } catch (e) { /* non-fatal */ }
+  }
+  initRealtimeSocket();
+
   // Auto-init on DOMContentLoaded
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', injectChatUI);

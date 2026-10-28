@@ -71,9 +71,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Handle Form Submission (Add New Book to Catalog & Save to LocalStorage)
+    // Handle Form Submission (Add New Book to Catalog, Sync with Backend API & Save to LocalStorage)
     if (uploadForm) {
-        uploadForm.addEventListener("submit", (e) => {
+        uploadForm.addEventListener("submit", async (e) => {
             e.preventDefault();
 
             const title = document.getElementById("uploadTitle").value.trim();
@@ -100,6 +100,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 image: finalImage,
                 cover: finalImage
             };
+
+            // Sync with backend SQLite / MySQL database if API is available
+            if (window.BookAPI && typeof window.BookAPI.addBook === "function") {
+                const apiPayload = {
+                    title: title,
+                    author: author,
+                    branch: department,
+                    semester: semester,
+                    gtu_code: "",
+                    gtuCode: "",
+                    condition: condition,
+                    price: price,
+                    mode: offerType === "Donate" ? "donate" : (offerType === "Exchange" ? "exchange" : "sell"),
+                    resource_type: category || "Textbook",
+                    resourceType: category || "Textbook",
+                    category: "physical",
+                    genre: department,
+                    subject: title,
+                    cover: uploadedBase64Image || "",
+                    image: uploadedBase64Image || "",
+                    coverUrl: uploadedBase64Image || ""
+                };
+                try {
+                    const savedBook = await window.BookAPI.addBook(apiPayload);
+                    if (savedBook && savedBook.id) {
+                        newBook.id = savedBook.id;
+                        newBook.sellerId = savedBook.sellerId;
+                        if (savedBook.seller) newBook.seller = savedBook.seller;
+                    }
+                } catch (apiErr) {
+                    console.warn("Backend API upload fallback to local:", apiErr);
+                }
+            }
 
             // Prepend new book to global books array
             books.unshift(newBook);

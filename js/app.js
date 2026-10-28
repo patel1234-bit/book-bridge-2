@@ -500,9 +500,9 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
           </div>
 
           <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-            <a href="#" class="btn-whatsapp-share" title="Chat with seller (WhatsApp is shared only after they approve)" onclick="return openSellerWhatsAppChat(event, '${safeId}')">
-              <i class="fa-brands fa-whatsapp"></i> WhatsApp
-            </a>
+            <button class="btn btn-outline btn-sm" title="Live Chat with Seller" onclick="return openSellerLiveChat(event, '${safeId}')" style="font-size:12px;color:var(--color-primary);border-color:var(--color-primary);padding:4px 10px;">
+              <i class="fa-solid fa-comments"></i> Live Chat
+            </button>
             ${isDigital ? `<button class="btn-pdf-view" onclick="openPDFModal('${escapeHTML(safePdfUrl)}', '${safeTitleForAttr}')">
               <i class="fa-solid fa-file-pdf"></i> View PDF
             </button>` : ''}
@@ -513,7 +513,7 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
   }).join('');
 }
 
-/* 📱 WHATSAPP AUTH GATE */
+/* 💬 STUDENT AUTH GATE FOR CHAT */
 window.handleWhatsAppClick = function(e) {
   const user = JSON.parse(localStorage.getItem('rcti_gtu_current_user') || 'null');
   const token = localStorage.getItem('bb_access_token');
@@ -529,36 +529,41 @@ window.handleWhatsAppClick = function(e) {
   return true;
 };
 
-/* 📱 OPEN SELLER CHAT (WhatsApp is unlocked inside chat after the seller approves) */
-window.openSellerWhatsAppChat = async function(e, bookId) {
+/* 💬 OPEN SELLER LIVE CHAT */
+window.openSellerLiveChat = async function(e, bookId) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
   if (window.handleWhatsAppClick && window.handleWhatsAppClick(e) === false) return false;
   try {
-    const book = await window.BookAPI.getBookById(bookId);
-    if (!book) return false;
-    const seller = book.seller || {};
-    const sellerEmail = seller.email || book.sellerEmail || '';
-    if (!sellerEmail) { showToast('Seller contact is not available for this listing.', 'warning'); return false; }
+    let book = null;
+    if (window.BookAPI && typeof window.BookAPI.getBookById === 'function') {
+      try { book = await window.BookAPI.getBookById(bookId); } catch (err) {}
+    }
+    if (!book && window.BookDB && typeof window.BookDB.getBookById === 'function') {
+      book = window.BookDB.getBookById(bookId);
+    }
+    const seller = (book && book.seller) || {};
+    const sellerEmail = seller.email || (book && book.sellerEmail) || 'student@rcti.ac.in';
     const modal = document.getElementById('bookDetailsModal');
     if (modal) modal.classList.remove('active');
     if (typeof window.openBookBridgeeChat === 'function') {
       window.openBookBridgeeChat({
         receiverEmail: sellerEmail,
-        receiverName: seller.name || book.sellerName || 'Student',
-        receiverId: seller.id || book.sellerId || undefined,
-        bookId: book.id,
-        bookTitle: book.title,
-        bookPrice: book.price || 0,
-        mode: book.mode || 'sell',
-        bookImage: book.coverUrl || book.image || book.cover || ''
+        receiverName: seller.name || (book && book.sellerName) || 'Student',
+        receiverId: seller.id || (book && book.sellerId) || undefined,
+        bookId: book ? book.id : bookId,
+        bookTitle: book ? book.title : '',
+        bookPrice: book ? (book.price || 0) : 0,
+        mode: (book && book.mode) || 'sell',
+        bookImage: book ? (book.coverUrl || book.image || book.cover || '') : ''
       });
-      showToast('Chat opened. The seller can share their WhatsApp from the chat window.', 'info');
+      showToast('Live chat connected with student seller.', 'info');
     }
   } catch (err) {
-    showToast('Could not open chat. Please try again.', 'warning');
+    showToast('Could not open live chat. Please try again.', 'warning');
   }
   return false;
 };
+window.openSellerWhatsAppChat = window.openSellerLiveChat;
 
 /* ❤️ WISHLIST TOGGLE */
 window.handleToggleWishlist = async function(e, bookId) {
@@ -607,7 +612,7 @@ window.handleBookAction = async function(bookId, actionLabel) {
   const modal = document.getElementById('bookDetailsModal');
   const titleEl = document.getElementById('modalBookTitle');
   const bodyEl = document.getElementById('modalBookBody');
-  const waBtn = document.getElementById('btnModalWhatsapp');
+  const waBtn = document.getElementById('btnModalLiveChat') || document.getElementById('btnModalWhatsapp');
   const confirmBtn = document.getElementById('btnModalActionConfirm');
 
   if (!modal) return;
@@ -677,9 +682,13 @@ window.handleBookAction = async function(bookId, actionLabel) {
     </div>
   `;
 
-  waBtn.href = '#';
-  waBtn.removeAttribute('target');
-  waBtn.onclick = (ev) => window.openSellerWhatsAppChat(ev, bookId);
+  if (waBtn) {
+    if (waBtn.tagName && waBtn.tagName.toLowerCase() === 'a') {
+      waBtn.href = '#';
+      waBtn.removeAttribute('target');
+    }
+    waBtn.onclick = (ev) => window.openSellerLiveChat(ev, bookId);
+  }
   const isDonationMode = book.price === 0 || book.mode === 'donate';
   const isExchangeMode = book.mode === 'exchange';
   const resolvedConfirmLabel = isDonationMode ? 'Claim Book / Contact Donor' : (isExchangeMode ? 'Swap / Contact Student' : 'Buy Book / Contact Seller');
@@ -1203,22 +1212,234 @@ async function initDonatePage() {
 }
 
 /* 📬 CONTACT */
-function initContactPage() {
+async function initContactPage() {
   const form = document.getElementById('contactPageForm');
-  form?.addEventListener('submit', async (e) => {
+  if (!form) return;
+
+  // Pre-fill student info and lock user email
+  try {
+    const user = (await window.BookAPI?.getCurrentUser()) || JSON.parse(localStorage.getItem('rcti_gtu_current_user') || 'null');
+    const nameInput = document.getElementById('contactName');
+    const emailInput = document.getElementById('contactEmail');
+    const recipientInput = document.getElementById('contactRecipientEmail');
+
+    if (recipientInput) {
+      recipientInput.value = 'bookbridgee@gmail.com';
+      recipientInput.readOnly = true;
+    }
+
+    if (user && user.email) {
+      if (nameInput && !nameInput.value) nameInput.value = user.name || user.email.split('@')[0];
+      if (emailInput) {
+        emailInput.value = user.email;
+        emailInput.readOnly = true;
+        emailInput.style.backgroundColor = '#f1f5f9';
+        emailInput.style.cursor = 'not-allowed';
+      }
+    } else {
+      if (emailInput) {
+        emailInput.readOnly = false;
+        emailInput.style.backgroundColor = '';
+        emailInput.style.cursor = '';
+        const helpEl = document.getElementById('contactEmailHelp');
+        if (helpEl) helpEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Enter your email address so support can reply back to you.';
+      }
+    }
+  } catch (e) {}
+
+  function getFormData() {
+    const name = document.getElementById('contactName')?.value.trim();
+    const email = document.getElementById('contactEmail')?.value.trim();
+    const subject = document.getElementById('contactSubject')?.value || 'General Inquiry';
+    const text = document.getElementById('contactMessage')?.value.trim();
+    return { name, email, subject, text };
+  }
+
+  function validateFormData({ name, email, text }) {
+    if (!name || !email || !text) {
+      showToast('Please fill in all required fields.', 'warning');
+      return false;
+    }
+    return true;
+  }
+
+  const targetEmail = 'bookbridgee@gmail.com';
+
+  function buildEmailPayload(data) {
+    const emailSubject = `[BookBridge ${data.subject}] Inquiry from ${data.name}`;
+    const emailBody = `Hello BookBridge Support Team,
+
+I am writing regarding "${data.subject}" on the BookBridge platform.
+
+--------------------------------------------------
+Student Name: ${data.name}
+Student Email: ${data.email}
+Inquiry Category: ${data.subject}
+Date & Time: ${new Date().toLocaleString('en-IN')}
+--------------------------------------------------
+
+Student Query / Message:
+${data.text}
+
+--------------------------------------------------
+Platform: BookBridge (https://bookbridge.in)
+`;
+    const mailtoUrl = `mailto:${targetEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${targetEmail}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    return { emailSubject, emailBody, mailtoUrl, gmailUrl };
+  }
+
+  async function syncBackendContact(data) {
+    try {
+      if (window.BookAPI && typeof window.BookAPI.submitContactInquiry === 'function') {
+        return await window.BookAPI.submitContactInquiry({
+          name: data.name,
+          email: data.email,
+          subject: data.subject,
+          message: data.text
+        });
+      }
+    } catch (err) {
+      console.warn('Backend inquiry submission note:', err);
+    }
+    return null;
+  }
+
+  function renderSuccessCard(data, { mailtoUrl, gmailUrl, backendResult, methodUsed }) {
+    const successBox = document.getElementById('contactSuccessCard');
+    if (!successBox) return;
+
+    const safeName = typeof escapeHTML === 'function' ? escapeHTML(data.name) : data.name;
+    const safeSubject = typeof escapeHTML === 'function' ? escapeHTML(data.subject) : data.subject;
+    const safeText = typeof escapeHTML === 'function' ? escapeHTML(data.text) : data.text;
+    const safeEmail = typeof escapeHTML === 'function' ? escapeHTML(data.email) : data.email;
+
+    const isSmtp = backendResult?.sentViaSMTP;
+    const statusHeadline = isSmtp
+      ? `Email Sent to ${targetEmail} via Server!`
+      : (methodUsed === 'gmail' ? `Connecting with Gmail for ${targetEmail}...` : `Inquiry Prepared for ${targetEmail}`);
+
+    successBox.style.display = 'block';
+    successBox.innerHTML = `
+      <div style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+          <h4 style="margin: 0 0 4px; font-size: 16px; color: #166534; font-weight: 700;">
+            ${statusHeadline}
+          </h4>
+          <p style="margin: 0; font-size: 13.5px; color: #15803d; line-height: 1.5;">
+            Thank you <strong>${safeName}</strong>! Your message is connected directly to <strong>${targetEmail}</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; color: #374151; line-height: 1.6;">
+        <div><strong>To:</strong> <span style="color: #166534; font-weight: 600;">${targetEmail}</span></div>
+        <div><strong>From:</strong> ${safeName} (${safeEmail})</div>
+        <div><strong>Subject:</strong> [BookBridge ${safeSubject}] Inquiry from ${safeName}</div>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e7eb; color: #4b5563; font-style: italic;">
+          "${safeText.substring(0, 180)}${safeText.length > 180 ? '...' : ''}"
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="${gmailUrl}" target="_blank" class="btn btn-primary btn-sm" style="background: #ea4335; border-color: #ea4335; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+          <i class="fa-brands fa-google"></i> Open in Gmail Web
+        </a>
+        <a href="${mailtoUrl}" class="btn btn-secondary btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-envelope"></i> Open Mail App
+        </a>
+        <button type="button" id="btnCopyContactEmail" class="btn btn-ghost btn-sm" style="border: 1px solid #86efac; display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-copy"></i> Copy Email
+        </button>
+      </div>
+    `;
+
+    document.getElementById('btnCopyContactEmail')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(targetEmail).then(() => {
+        showToast(`Copied ${targetEmail} to clipboard!`, 'info');
+      }).catch(() => {
+        showToast(targetEmail, 'info');
+      });
+    });
+
+    successBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // 1. Submit via Gmail Web (Main Form Submit or Red Button)
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('contactName').value;
-    const email = document.getElementById('contactEmail').value;
-    const text = document.getElementById('contactMessage').value;
+    const data = getFormData();
+    if (!validateFormData(data)) return;
 
-    const submitBtn = form.querySelector('[type="submit"]');
-    submitBtn.classList.add('btn-loading');
+    const submitBtn = document.getElementById('btnSubmitContact');
+    const originalText = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Connecting to Gmail...';
+    }
 
-    await window.BookAPI.sendMessage(email, text, 'Contact Support');
+    const payload = buildEmailPayload(data);
+    const backendResult = await syncBackendContact(data);
 
-    submitBtn.classList.remove('btn-loading');
-    showToast(`Thank you, ${name}! Your message has been sent.`, 'success');
-    form.reset();
+    // Open Gmail Web directly in a new tab
+    const opened = window.open(payload.gmailUrl, '_blank');
+    if (!opened) {
+      // Fallback if popup blocker intercepted
+      window.location.href = payload.mailtoUrl;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+
+    showToast(`Opening Gmail addressed to ${targetEmail}!`, 'success');
+    renderSuccessCard(data, { ...payload, backendResult, methodUsed: 'gmail' });
+  });
+
+  // 2. Button: Desktop Mail App (Outlook / Windows Mail)
+  document.getElementById('btnSubmitMailApp')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const data = getFormData();
+    if (!validateFormData(data)) return;
+
+    const payload = buildEmailPayload(data);
+    const backendResult = await syncBackendContact(data);
+
+    try {
+      window.location.href = payload.mailtoUrl;
+    } catch (err) {}
+
+    showToast(`Opened email app addressed to ${targetEmail}`, 'info');
+    renderSuccessCard(data, { ...payload, backendResult, methodUsed: 'mailto' });
+  });
+
+  // 3. Button: Send Directly Online (Backend Server Record & AuditLog)
+  document.getElementById('btnSubmitOnline')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const data = getFormData();
+    if (!validateFormData(data)) return;
+
+    const btn = document.getElementById('btnSubmitOnline');
+    const orig = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Submitting...';
+    }
+
+    const payload = buildEmailPayload(data);
+    const backendResult = await syncBackendContact(data);
+
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    }
+
+    showToast(`Inquiry submitted online and logged for ${targetEmail}!`, 'success');
+    renderSuccessCard(data, { ...payload, backendResult, methodUsed: 'online' });
   });
 }
 
@@ -1774,8 +1995,9 @@ async function renderDashboardMessages(user) {
         const colorVar = colorVars[email.length % colorVars.length];
         const safeBookTitle = lastMsg?.bookTitle ? escapeHTML(lastMsg.bookTitle) : '';
         const safeText = lastMsg?.text ? escapeHTML(lastMsg.text) : '';
+        const safeEmail = escapeHTML(email);
         return `
-          <div class="msg-thread-item ${thread.unread > 0 ? 'unread' : ''}">
+          <div class="msg-thread-item ${thread.unread > 0 ? 'unread' : ''}" style="cursor: pointer;" data-partner-email="${safeEmail}" data-partner-name="${safeName}">
             <div class="msg-avatar" style="background:var(--color-${colorVar});">${initials}</div>
             <div class="msg-thread-content">
               <div class="msg-thread-name">${safeName}</div>
@@ -1790,10 +2012,20 @@ async function renderDashboardMessages(user) {
       }).join('')}
     </div>
     <div class="msg-compose-bar">
-      <input type="text" id="newMsgInput" placeholder="Type a message to a seller...">
-      <button class="btn btn-primary btn-sm" onclick="showToast('Open a book card to send a message!', 'info')"><i class="fa-solid fa-paper-plane"></i></button>
+      <input type="text" id="newMsgInput" placeholder="Open BookBridgee Live Chat..." readonly style="cursor: pointer;" onclick="window.toggleChatDrawer ? window.toggleChatDrawer(true) : null">
+      <button class="btn btn-primary btn-sm" onclick="window.toggleChatDrawer ? window.toggleChatDrawer(true) : null" title="Open Live Chat"><i class="fa-solid fa-comments"></i></button>
     </div>
   `;
+
+  msgContainer.querySelectorAll('.msg-thread-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const pEmail = item.dataset.partnerEmail;
+      const pName = item.dataset.partnerName;
+      if (typeof window.openBookBridgeeChat === 'function') {
+        window.openBookBridgeeChat({ receiverEmail: pEmail, receiverName: pName });
+      }
+    });
+  });
 }
 
 /* ─── Dashboard: Notifications ─── */

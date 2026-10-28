@@ -9,6 +9,7 @@
   <meta name="description" content="Get in touch with the BookBridge team for support, inquiries, or feedback. We're here to help.">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/chat.css">
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -77,7 +78,7 @@
           </div>
         </div>
         <div class="contact-card">
-          <div class="contact-card-icon" style="background:var(--color-success-light);color:var(--color-success);"><i class="fa-brands fa-whatsapp"></i></div>
+          <div class="contact-card-icon" style="background:var(--color-success-light);color:var(--color-success);"><i class="fa-solid fa-comments"></i></div>
           <div>
             <h4>WhatsApp</h4>
             <p>+91 9408547637</p>
@@ -101,37 +102,75 @@
 
       <!-- CONTACT FORM -->
       <div class="card animate-on-scroll" style="max-width: 640px; margin: 0 auto 48px; padding: 36px;">
-        <h3 style="margin-bottom: 24px;">Send us a Message</h3>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+          <h3 style="margin: 0;">Send us a Message</h3>
+          <span style="font-size: 12px; font-weight: 600; background: rgba(62,107,58,0.1); color: var(--color-primary); padding: 4px 10px; border-radius: 20px;">
+            <i class="fa-solid fa-envelope me-1"></i> to: bookbridgee@gmail.com
+          </span>
+        </div>
+        <p style="font-size: 13.5px; color: var(--color-gray); margin-bottom: 22px;">
+          Have questions, feedback, or need help? Your query will be delivered directly to the official support inbox at <strong>bookbridgee@gmail.com</strong>.
+        </p>
         <form id="contactPageForm">
+          <!-- Default Recipient (Locked - Cannot change) -->
+          <div class="form-group" style="margin-bottom: 20px;">
+            <i class="fa-solid fa-paper-plane form-icon" style="color: var(--color-primary);"></i>
+            <input type="email" id="contactRecipientEmail" class="form-input form-icon-left" value="bookbridgee@gmail.com" readonly style="background-color: #f1f5f9; cursor: not-allowed; font-weight: 700; color: #166534;">
+            <label class="form-label" style="left: 44px;">Deliver To (Official Support Email) *</label>
+            <div style="font-size: 11.5px; color: #15803d; font-weight: 600; margin-top: 5px; display: flex; align-items: center; gap: 5px;">
+              <i class="fa-solid fa-lock"></i> Default destination: bookbridgee@gmail.com (Fixed - cannot be changed)
+            </div>
+          </div>
+
           <div class="form-group">
             <i class="fa-solid fa-user form-icon"></i>
             <input type="text" id="contactName" class="form-input form-icon-left" placeholder=" " required>
             <label class="form-label" style="left: 44px;">Your Full Name *</label>
             <div class="form-error">Name is required</div>
           </div>
+
+          <!-- User Email Address (Locked for student account - Cannot change) -->
           <div class="form-group">
             <i class="fa-solid fa-envelope form-icon"></i>
-            <input type="email" id="contactEmail" class="form-input form-icon-left" placeholder=" " required>
-            <label class="form-label" style="left: 44px;">Email Address *</label>
+            <input type="email" id="contactEmail" class="form-input form-icon-left" placeholder=" " required readonly style="background-color: #f1f5f9; cursor: not-allowed; font-weight: 600;">
+            <label class="form-label" style="left: 44px;">Your Email Address (User Account) *</label>
+            <div style="font-size: 11.5px; color: var(--color-gray); margin-top: 5px; display: flex; align-items: center; gap: 5px;" id="contactEmailHelp">
+              <i class="fa-solid fa-lock"></i> User email locked to your verified account (Cannot be changed)
+            </div>
             <div class="form-error">Enter a valid email</div>
           </div>
+
           <div class="form-group">
             <select id="contactSubject" class="form-select">
-              <option value="General">General Inquiry</option>
-              <option value="Support">Technical Support</option>
-              <option value="Book">Book Listing Issue</option>
-              <option value="Report">Report a Problem</option>
-              <option value="Feedback">Feedback</option>
+              <option value="General Inquiry">General Inquiry</option>
+              <option value="Technical Support">Technical Support</option>
+              <option value="Book Listing Issue">Book Listing Issue</option>
+              <option value="Report a Problem">Report a Problem</option>
+              <option value="Feedback & Suggestions">Feedback & Suggestions</option>
             </select>
           </div>
+
           <div class="form-group">
             <textarea id="contactMessage" class="form-input" placeholder="Your message or inquiry..." required style="min-height: 130px; padding: 16px; resize: vertical;"></textarea>
             <div class="form-error">Message is required</div>
           </div>
-          <button type="submit" class="btn btn-primary btn-block btn-lg">
-            <i class="fa-solid fa-paper-plane"></i> Send Message
-          </button>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button type="submit" id="btnSubmitContact" class="btn btn-primary btn-block btn-lg" style="background: #ea4335; border-color: #ea4335;">
+              <i class="fa-brands fa-google me-2"></i> Send to bookbridgee@gmail.com (Gmail Web)
+            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <button type="button" id="btnSubmitMailApp" class="btn btn-secondary btn-block" style="font-size: 13.5px; padding: 10px 14px;">
+                <i class="fa-solid fa-envelope me-1"></i> Desktop Email App
+              </button>
+              <button type="button" id="btnSubmitOnline" class="btn btn-ghost btn-block" style="border: 1px solid var(--color-border); font-size: 13.5px; padding: 10px 14px;">
+                <i class="fa-solid fa-paper-plane me-1"></i> Send Online Directly
+              </button>
+            </div>
+          </div>
         </form>
+
+        <div id="contactSuccessCard" style="display: none; margin-top: 24px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 20px;"></div>
       </div>
 
       <!-- FAQ ACCORDION -->
@@ -144,7 +183,7 @@
           </div>
           <div class="accordion-item">
             <button class="accordion-trigger">How do I exchange a book? <i class="fa-solid fa-chevron-down"></i></button>
-            <div class="accordion-body"><div class="accordion-content">Simply upload the book you want to exchange on the Exchange page, specifying what book you're looking for. Other students can browse your listing and propose a swap. You'll connect via WhatsApp or in-app messaging to finalize the trade.</div></div>
+            <div class="accordion-body"><div class="accordion-content">Simply upload the book you want to exchange on the Exchange page, specifying what book you're looking for. Other students can browse your listing and propose a swap. You'll connect via real-time in-app live chat to finalize the trade.</div></div>
           </div>
           <div class="accordion-item">
             <button class="accordion-trigger">Can I donate books I no longer need? <i class="fa-solid fa-chevron-down"></i></button>
@@ -181,6 +220,7 @@
   <script src="js/database.js"></script>
   <script src="js/api.js"></script>
   <script src="js/live-stats.js"></script>
+  <script src="js/chat.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

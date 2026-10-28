@@ -301,6 +301,21 @@ exports.forgotPassword = async (req, res, next) => {
       console.log(` ⏳ Valid for: 1 hour`);
       console.log(`===================================================`);
 
+      // Dispatch real password reset email via Brevo / SMTP if configured
+      try {
+        const mailEngine = require('../config/mail');
+        if (mailEngine && mailEngine.isConfigured) {
+          await mailEngine.sendMail({
+            to: user.email,
+            subject: 'Reset Your BookBridge Password',
+            text: `Hello ${user.name || 'Student'},\n\nA password reset request was received for your BookBridge account.\nClick the link below to reset your password (valid for 1 hour):\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`,
+            html: `<div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 10px;"><h2 style="color: #3E6B3A;">BookBridge Password Reset</h2><p>Hello ${user.name || 'Student'},</p><p>We received a request to reset your password. Click the button below to choose a new password (valid for 1 hour):</p><p style="margin: 24px 0;"><a href="${resetUrl}" style="background: #3E6B3A; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Reset My Password</a></p><p style="font-size: 12px; color: #64748b;">Or paste this link into your browser: <br><a href="${resetUrl}">${resetUrl}</a></p></div>`
+          });
+        }
+      } catch (mailErr) {
+        console.warn('[Password Reset Email Note]:', mailErr.message);
+      }
+
       // Record audit log
       try {
         await AuditLog.create({

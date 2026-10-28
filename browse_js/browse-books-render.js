@@ -127,18 +127,18 @@ function renderBooks(bookList = books) {
                             ${escapeHTML(book.condition || 'Good')}
                         </div>
 
-                        <!-- View Details & Buy/Action -->
+                        <!-- View Details & Live Chat / Buy -->
                         <div class="d-flex gap-2 align-items-center mt-2 flex-wrap">
                             <button
                                 class="view-btn flex-grow-1"
                                 data-id="${book.id}">
-                                View Details
+                                <i class="bi bi-info-circle me-1"></i> View Details
                             </button>
                             <button
-                                class="btn btn-outline-success btn-sm chat-card-btn px-2 fw-semibold"
+                                class="btn btn-success btn-sm chat-card-btn px-2 fw-semibold"
                                 data-id="${book.id}"
                                 title="${escapeHTML(actionTitle)}">
-                                <i class="bi ${actionIcon} me-1"></i> ${escapeHTML(actionLabel)}
+                                <i class="bi bi-chat-dots-fill me-1"></i> ${escapeHTML(actionLabel)}
                             </button>
                             ${(typeof isAdminMode !== "undefined" && isAdminMode) ? `
                                 <button class="btn btn-sm btn-warning text-dark admin-edit-btn px-2" data-id="${book.id}" title="Edit Book & Replace Photo">
@@ -208,13 +208,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (typeof window.openBookBridgeeChat === "function") {
-                    const seller = book.seller || { name: `Student (${book.department || 'CE'})`, email: 'student@rcti.ac.in', whatsapp: '' };
+                    const seller = book.seller || { name: `Student (${book.department || 'CE'})`, email: 'student@rcti.ac.in' };
                     const mode = isFree ? "donate" : (isExchange ? "exchange" : "sell");
                     window.openBookBridgeeChat({
-                        receiverEmail: seller.email,
-                        receiverName: seller.name,
+                        receiverEmail: seller.email || 'student@rcti.ac.in',
+                        receiverName: seller.name || `Student (${book.department || 'CE'})`,
                         receiverId: seller.id || book.sellerId || book.userId || undefined,
-                        receiverPhone: seller.whatsapp,
                         bookId: book.id,
                         bookTitle: book.title,
                         bookPrice: book.price || 0,
@@ -286,11 +285,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const modalChatBtn = document.getElementById("modalChatActionBtn");
             if (modalChatBtn) {
                 if (isFree) {
-                    modalChatBtn.innerHTML = '<i class="bi bi-gift-fill me-1"></i> Claim Free Book';
+                    modalChatBtn.innerHTML = '<i class="bi bi-chat-dots-fill me-1"></i> Live Chat & Claim Free Book';
                 } else if (isExchange) {
-                    modalChatBtn.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i> Swap / Exchange Book';
+                    modalChatBtn.innerHTML = '<i class="bi bi-chat-dots-fill me-1"></i> Live Chat & Swap Book';
                 } else {
-                    modalChatBtn.innerHTML = '<i class="bi bi-cart-check-fill me-1"></i> Buy Book & Chat with Seller';
+                    modalChatBtn.innerHTML = '<i class="bi bi-chat-dots-fill me-1"></i> Live Chat with Seller & Buy';
                 }
             }
 
@@ -341,15 +340,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (modal) modal.hide();
             }
 
-            const seller = activeViewedBook.seller || { name: `Student (${activeViewedBook.department || 'CE'})`, email: 'student@rcti.ac.in', whatsapp: '' };
+            const seller = activeViewedBook.seller || { name: `Student (${activeViewedBook.department || 'CE'})`, email: 'student@rcti.ac.in' };
             const mode = isFree ? "donate" : (isExchange ? "exchange" : "sell");
 
             if (typeof window.openBookBridgeeChat === "function") {
                 window.openBookBridgeeChat({
-                    receiverEmail: seller.email,
-                    receiverName: seller.name,
+                    receiverEmail: seller.email || 'student@rcti.ac.in',
+                    receiverName: seller.name || `Student (${activeViewedBook.department || 'CE'})`,
                     receiverId: seller.id || activeViewedBook.sellerId || activeViewedBook.userId || undefined,
-                    receiverPhone: seller.whatsapp,
                     bookId: activeViewedBook.id,
                     bookTitle: activeViewedBook.title,
                     bookPrice: activeViewedBook.price || 0,

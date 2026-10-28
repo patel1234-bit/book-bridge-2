@@ -514,6 +514,14 @@ window.BookAPI = {
     return window.BookDB ? window.BookDB.addReview(sellerEmail, rating, comment) : null;
   },
 
+  async submitContactInquiry(payload) {
+    try {
+      return await _post('/contact', payload);
+    } catch (e) {
+      return { status: 'fallback', destination: 'bookbridgee@gmail.com' };
+    }
+  },
+
   async deleteUser(userId) {
     return window.BookDB ? window.BookDB.deleteUser(userId) : null;
   }

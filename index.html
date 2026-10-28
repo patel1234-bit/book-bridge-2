@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="css/design-tokens.css">
   <link rel="stylesheet" href="style.css?v=2.1">
+  <link rel="stylesheet" href="css/chat.css">
 </head>
 
 <body>
@@ -200,7 +201,7 @@
             <i class="fa-solid fa-shield-halved"></i>
           </div>
           <div class="feature-title">Direct Student Connect</div>
-          <div class="feature-desc">Connect directly via WhatsApp and instant message with verified students on your
+          <div class="feature-desc">Connect directly via real-time live chat with verified students on your
             campus.</div>
         </div>
       </div>
@@ -570,10 +571,7 @@
       </div>
       <div id="modalBookBody" style="line-height: 1.8; font-size: 14px; margin-bottom: 24px;"></div>
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a id="btnModalWhatsapp" target="_blank" class="btn btn-primary"
-          style="flex: 1; text-decoration: none; background: #25D366; border-color: #25D366;">
-          <i class="fa-brands fa-whatsapp"></i> WhatsApp
-        </a>
+        <button id="btnModalLiveChat" class="btn btn-primary" style="flex: 1; background: #059669; border-color: #059669;"><i class="fa-solid fa-comments"></i> Live Chat with Student</button>
         <button id="btnModalActionConfirm" class="btn btn-brown" style="flex: 1;">Confirm Request</button>
       </div>
     </div>
@@ -582,6 +580,7 @@
   <script src="js/database.js"></script>
   <script src="js/api.js"></script>
   <script src="js/live-stats.js"></script>
+  <script src="js/chat.js"></script>
   <script src="js/app.js"></script>
 </body>
 

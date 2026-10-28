@@ -112,9 +112,6 @@
           </div>
         </div>
         <div class="bb-chat-header-actions">
-          <a id="bbChatWhatsappBtn" href="#" class="bb-chat-icon-btn whatsapp" title="Continue on WhatsApp (needs their approval)" style="display: none;">
-            📱
-          </a>
           <button id="bbChatCloseBtn" class="bb-chat-icon-btn" title="Close Chat">
             ✕
           </button>
@@ -161,12 +158,6 @@
 
       <!-- CONVERSATION VIEW -->
       <div id="bbConvoView" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
-        <!-- WhatsApp consent bar -->
-        <div id="bbWaBar" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid #E2E8F0; background: #F0FDF4; font-size: 12px;">
-          <span id="bbWaStatus" style="flex: 1; min-width: 140px; color: #166534;">WhatsApp is shared only with approval.</span>
-          <button type="button" id="bbShareWaBtn" style="border: 1px solid #25D366; background: #fff; color: #166534; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer;">📱 Share my WhatsApp</button>
-          <button type="button" id="bbContinueWaBtn" disabled style="border: 0; background: #25D366; color: #fff; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; opacity: 0.6;">Continue on WhatsApp</button>
-        </div>
         <!-- Messages Stream -->
         <div id="bbChatMessages" class="bb-chat-messages">
           <!-- Bubbles -->
@@ -241,8 +232,6 @@
       }
     });
 
-    document.getElementById('bbShareWaBtn')?.addEventListener('click', handleShareWhatsApp);
-    document.getElementById('bbContinueWaBtn')?.addEventListener('click', handleContinueWhatsApp);
     document.getElementById('bbReportUserBtn')?.addEventListener('click', handleReportUser);
     document.getElementById('bbBlockUserBtn')?.addEventListener('click', handleBlockUser);
 
@@ -371,6 +360,9 @@
       const conv = await window.BookAPI.getOrCreateConversation(recipientId, activePartner.email, bookId);
       if (conv && conv.id) {
         activePartner.conversationId = conv.id;
+        if (window.__bbChatSocket && window.__bbChatSocket.connected) {
+          try { window.__bbChatSocket.emit('joinConversation', conv.id); } catch (e) {}
+        }
         return conv.id;
       }
     } catch (err) {
@@ -379,96 +371,10 @@
     return null;
   }
 
-  // Sync the WhatsApp consent bar with the server state (booleans only, no numbers)
-  async function refreshWhatsAppState() {
-    const bar = document.getElementById('bbWaBar');
-    const headerBtn = document.getElementById('bbChatWhatsappBtn');
-    const status = document.getElementById('bbWaStatus');
-    const shareBtn = document.getElementById('bbShareWaBtn');
-    const contBtn = document.getElementById('bbContinueWaBtn');
-    if (!bar) return;
-    const convId = await ensureActiveConversation();
-    if (!convId) {
-      bar.style.display = 'none';
-      if (headerBtn) headerBtn.style.display = 'none';
-      return;
-    }
-    let mine = false;
-    let partner = false;
-    try {
-      const list = await window.BookAPI.getConversations();
-      const conv = Array.isArray(list) ? list.find(c => String(c.id) === String(convId)) : null;
-      if (conv) {
-        mine = Boolean(conv.iApprovedWhatsapp);
-        partner = Boolean(conv.partnerApprovedWhatsapp);
-      }
-    } catch (err) { /* keep defaults */ }
-    bar.style.display = 'flex';
-    if (headerBtn) headerBtn.style.display = 'flex';
-    if (shareBtn) {
-      shareBtn.textContent = mine ? '✓ WhatsApp shared' : '📱 Share my WhatsApp';
-      shareBtn.disabled = mine;
-      shareBtn.style.opacity = mine ? '0.7' : '1';
-    }
-    if (contBtn) {
-      contBtn.disabled = !partner;
-      contBtn.style.opacity = partner ? '1' : '0.6';
-    }
-    if (status) {
-      status.textContent = partner
-        ? 'They shared their WhatsApp. Tap Continue to chat.'
-        : (mine ? 'You shared yours. Waiting for them to share theirs.' : 'WhatsApp is shared only with approval.');
-    }
-  }
-
-  async function handleShareWhatsApp() {
-    if (!activePartner || !(await ensureActiveConversation())) {
-      if (typeof showToast === 'function') showToast('Please select or open a conversation first', 'warning');
-      return;
-    }
-    const btn = document.getElementById('bbShareWaBtn');
-    try {
-      if (window.BookAPI && typeof window.BookAPI.approveConversationWhatsApp === 'function') {
-        await window.BookAPI.approveConversationWhatsApp(activePartner.conversationId);
-      }
-      if (typeof showToast === 'function') showToast('You approved sharing your WhatsApp for this conversation!', 'success');
-      if (btn) {
-        btn.textContent = '✓ WhatsApp Shared';
-        btn.disabled = true;
-        btn.style.opacity = '0.7';
-      }
-      refreshWhatsAppState();
-    } catch (err) {
-      if (typeof showToast === 'function') showToast(err.message || 'Could not approve WhatsApp', 'danger');
-    }
-  }
-
-  async function handleContinueWhatsApp() {
-    if (!activePartner || !(await ensureActiveConversation())) {
-      if (typeof showToast === 'function') showToast('Please select or open a conversation first', 'warning');
-      return;
-    }
-    try {
-      if (window.BookAPI && typeof window.BookAPI.getConversationWhatsApp === 'function') {
-        const data = await window.BookAPI.getConversationWhatsApp(activePartner.conversationId);
-        const rawNum = data?.whatsapp || data?.whatsappNumber;
-        if (rawNum) {
-          let digits = String(rawNum).replace(/[^0-9]/g, '');
-          if (digits.length === 10) digits = '91' + digits;
-          const bookTitle = activeDeal?.bookTitle || 'your textbook';
-          const msg = `Hi ${activePartner.name || ''}! I am contacting you from BookBridge regarding "${bookTitle}".`;
-          const url = `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
-          const opened = window.open(url, '_blank');
-          if (!opened) window.location.href = url;
-          return;
-        }
-      }
-      if (typeof showToast === 'function') showToast('Could not retrieve verified WhatsApp number', 'warning');
-    } catch (err) {
-      const msg = err.data?.error || err.message || 'WhatsApp sharing has not been approved yet.';
-      if (typeof showToast === 'function') showToast(msg, 'warning');
-    }
-  }
+  // Stub functions for backwards compatibility
+  async function refreshWhatsAppState() {}
+  async function handleShareWhatsApp() {}
+  async function handleContinueWhatsApp() {}
 
   async function handleReportUser() {
     if (!activePartner || !activePartner.conversationId) return;
@@ -513,13 +419,11 @@
     const userName = document.getElementById('bbChatUserName');
     const userStatus = document.getElementById('bbChatUserStatus');
     const avatar = document.getElementById('bbChatAvatar');
-    const waBtn = document.getElementById('bbChatWhatsappBtn');
 
     if (backBtn) backBtn.style.display = 'none';
     if (dealBanner) dealBanner.style.display = 'none';
     if (convoView) convoView.style.display = 'none';
     if (inboxView) inboxView.style.display = 'flex';
-    if (waBtn) waBtn.style.display = 'none';
 
     if (userName) userName.textContent = 'Student Conversations';
     if (userStatus) userStatus.textContent = 'Buy · Sell · Exchange · Donate';
@@ -650,15 +554,24 @@
       return;
     }
 
-    const receiverEmail = options.receiverEmail || 'student@rcti.ac.in';
-    const receiverName = options.receiverName || 'Student';
-    const receiverPhone = ''; // numbers are never taken from the client; WhatsApp is unlocked via the consent endpoint
+    let receiverEmail = options.receiverEmail;
+    let receiverName = options.receiverName || 'Student';
+
+    // If receiverEmail is missing or matches current user (e.g. testing fallback catalog books), choose alternate demo student
+    if (!receiverEmail || (currentUser && receiverEmail.toLowerCase() === String(currentUser.email || '').toLowerCase())) {
+      receiverEmail = (currentUser && String(currentUser.email || '').toLowerCase() === 'student@rcti.ac.in')
+        ? 'keval.ce@rcti.ac.in'
+        : 'student@rcti.ac.in';
+      if (!options.receiverName || receiverName === 'Student' || (currentUser && receiverName === currentUser.name)) {
+        receiverName = receiverEmail === 'keval.ce@rcti.ac.in' ? 'Keval Prajapati (CE)' : 'Demo Student (IT)';
+      }
+    }
 
     activePartner = {
       id: options.receiverId || undefined,
       email: receiverEmail,
       name: receiverName,
-      phone: receiverPhone,
+      phone: '',
       role: options.receiverRole || 'Student',
       branch: options.receiverBranch || 'Engineering'
     };
@@ -712,7 +625,6 @@
     const userName = document.getElementById('bbChatUserName');
     const userStatus = document.getElementById('bbChatUserStatus');
     const avatar = document.getElementById('bbChatAvatar');
-    const waBtn = document.getElementById('bbChatWhatsappBtn');
 
     if (backBtn) backBtn.style.display = 'flex';
     if (inboxView) inboxView.style.display = 'none';
@@ -721,14 +633,6 @@
     if (userName) userName.textContent = activePartner.name;
     if (userStatus) userStatus.textContent = activePartner.branch || 'Student';
     if (avatar) avatar.textContent = getInitials(activePartner.name);
-
-    if (waBtn) {
-      // Never link straight to a number: go through the consent-gated handler
-      waBtn.href = '#';
-      waBtn.onclick = (ev) => { ev.preventDefault(); handleContinueWhatsApp(); };
-      waBtn.style.display = 'none'; // shown by refreshWhatsAppState once a server conversation exists
-    }
-    refreshWhatsAppState();
 
     // Join conversation room in Socket.IO for real-time delivery
     ensureActiveConversation().then((cid) => {
@@ -1110,27 +1014,34 @@
     triggerSimulatedStudentReply(text);
   }
 
-  // Realistic Simulation: If receiver is not logged in, simulate reply after delay
+  // Realistic Simulation: If receiver is a demo student, simulate reply after delay
   function triggerSimulatedStudentReply(triggerText) {
-    if (isServerMode()) return; // real users reply for themselves; simulation is for offline demo only
-    if (simulatedTypingTimeout) clearTimeout(simulatedTypingTimeout);
-
-    const partnerEmail = activePartner.email.toLowerCase();
-    const isSelf = partnerEmail === getCurrentUser()?.email?.toLowerCase();
+    const partnerEmail = String(activePartner?.email || '').toLowerCase();
+    const currentUser = getCurrentUser();
+    const myEmail = String(currentUser?.email || '').toLowerCase();
+    const isSelf = partnerEmail === myEmail;
     if (isSelf) return;
+
+    const isDemoPartner = partnerEmail === 'student@rcti.ac.in' || partnerEmail === 'keval.ce@rcti.ac.in' || partnerEmail.includes('student');
+    // If not a demo partner and in server mode, real users reply for themselves
+    if (isServerMode() && !isDemoPartner) return;
+
+    if (simulatedTypingTimeout) clearTimeout(simulatedTypingTimeout);
 
     const typingEl = document.getElementById('bbTypingIndicator');
 
     // 1. Show Typing Indicator after 1.2s
     simulatedTypingTimeout = setTimeout(() => {
       if (typingEl) {
+        const textEl = typingEl.querySelector('span');
+        if (textEl) textEl.textContent = `${activePartner.name} is typing...`;
         typingEl.classList.add('active');
         const stream = document.getElementById('bbChatMessages');
         if (stream) stream.scrollTop = stream.scrollHeight;
       }
 
-      // 2. Send realistic response after 2.2s
-      setTimeout(() => {
+      // 2. Send realistic response after 2.4s
+      setTimeout(async () => {
         if (typingEl) typingEl.classList.remove('active');
 
         let reply = '';
@@ -1152,8 +1063,8 @@
           id: 'msg-' + Date.now(),
           senderName: activePartner.name,
           senderEmail: activePartner.email,
-          receiverName: getCurrentUser()?.name || 'Student',
-          receiverEmail: getCurrentUser()?.email,
+          receiverName: currentUser?.name || 'Student',
+          receiverEmail: currentUser?.email,
           text: reply,
           bookTitle: activeDeal?.bookTitle || '',
           mode: mode,
@@ -1166,13 +1077,13 @@
         localStorage.setItem('rcti_gtu_messages', JSON.stringify(all));
 
         playBeep('receive');
-        loadMessagesStream();
+        await loadMessagesStream();
         updateUnreadBadge();
 
         if (typeof showToast === 'function') {
           showToast(`💬 New message from ${activePartner.name}`, 'info');
         }
-      }, 2200);
+      }, 2400);
     }, 1200);
   }
 
@@ -1241,21 +1152,30 @@
   function initRealtimeSocket() {
     try {
       const token = localStorage.getItem('bb_access_token');
-      if (!token) return;
-      if (window.__bbChatSocket && window.__bbChatSocket.connected) return;
+      // If already connected with proper token, no need to reconnect
+      if (window.__bbChatSocket && window.__bbChatSocket.connected) {
+        if (token && !window.__bbChatSocket.__authed) {
+          try { window.__bbChatSocket.disconnect(); } catch (e) {}
+        } else {
+          return;
+        }
+      }
 
       const connect = () => {
         if (typeof window.io !== 'function') return;
         if (window.__bbChatSocket) {
           try { window.__bbChatSocket.disconnect(); } catch (e) {}
         }
-        const sock = window.io({ auth: { token }, transports: ['websocket', 'polling'] });
+        const auth = token ? { token } : {};
+        const sock = window.io({ auth, transports: ['websocket', 'polling'] });
+        sock.__authed = Boolean(token);
         window.__bbChatSocket = sock;
 
         sock.on('connect', () => {
-          if (activePartner && activePartner.conversationId) {
+          if (activePartner && activePartner.conversationId && sock.__authed) {
             sock.emit('joinConversation', activePartner.conversationId);
           }
+          window.dispatchEvent(new CustomEvent('bookbridge:socket-ready', { detail: { socket: sock } }));
         });
 
         const onIncoming = (msg) => {
@@ -1288,15 +1208,7 @@
           }
         });
 
-        // Real-time WhatsApp consent approval notification
-        sock.on('whatsappApproved', (data) => {
-          if (activePartner && String(activePartner.conversationId) === String(data?.conversationId)) {
-            refreshWhatsAppState();
-            if (typeof showToast === 'function') {
-              showToast(`${data.approverName || activePartner.name} shared their WhatsApp! You can now continue on WhatsApp.`, 'success');
-            }
-          }
-        });
+        window.dispatchEvent(new CustomEvent('bookbridge:socket-ready', { detail: { socket: sock } }));
       };
 
       if (typeof window.io === 'function') return connect();

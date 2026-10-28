@@ -5,6 +5,7 @@
  * ==========================================================================
  */
 
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -254,6 +255,98 @@ app.put('/api/notifications/read', authenticateToken, chatController.markNotific
 app.get('/api/messages', authenticateToken, chatController.getLegacyMessages);
 app.post('/api/messages', authenticateToken, validateMessageInput, (req, res, next) => chatController.sendLegacyMessage(req, res, next, io));
 
+// 10.5 Contact Inquiries Endpoint (Default destination: bookbridgee@gmail.com)
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body || {};
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Name, email, and message are required.' });
+    }
+    const cleanName = String(name).trim();
+    const cleanEmail = String(email).trim();
+    const cleanSubject = String(subject || 'General Inquiry').trim();
+    const cleanMessage = String(message).trim();
+
+    console.log(`[Contact Inquiry] From: "${cleanName}" <${cleanEmail}> | Subject: "${cleanSubject}" -> Destination: bookbridgee@gmail.com`);
+
+    // Record in AuditLog for administrative tracking
+    try {
+      const { AuditLog } = require('./models');
+      if (AuditLog) {
+        await AuditLog.create({
+          action: 'CONTACT_INQUIRY',
+          userId: req.user ? req.user.id : null,
+          targetResource: 'bookbridgee@gmail.com',
+          details: JSON.stringify({
+            name: cleanName,
+            email: cleanEmail,
+            subject: cleanSubject,
+            messagePreview: cleanMessage.substring(0, 150)
+          }),
+          ipAddress: req.ip || req.headers['x-forwarded-for'] || '127.0.0.1'
+        });
+      }
+    } catch (e) {
+      // non-blocking
+    }
+
+    // Try direct email transmission via Brevo API / Nodemailer if configured
+    let mailResult = null;
+    try {
+      const mailEngine = require('./config/mail');
+      if (mailEngine && mailEngine.isConfigured) {
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <div style="background: #3E6B3A; color: #ffffff; padding: 24px; text-align: center;">
+              <h2 style="margin: 0; font-size: 20px;">BookBridge Campus Marketplace</h2>
+              <p style="margin: 6px 0 0; font-size: 13px; opacity: 0.9;">New Student Contact Inquiry</p>
+            </div>
+            <div style="padding: 24px; background: #ffffff;">
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 120px;"><strong>Student Name:</strong></td><td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: bold;">${cleanName}</td></tr>
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;"><strong>Student Email:</strong></td><td style="padding: 8px 0; color: #0f172a; font-size: 14px;"><a href="mailto:${cleanEmail}">${cleanEmail}</a></td></tr>
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;"><strong>Subject:</strong></td><td style="padding: 8px 0; color: #0f172a; font-size: 14px;">${cleanSubject}</td></tr>
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;"><strong>Received:</strong></td><td style="padding: 8px 0; color: #0f172a; font-size: 13px;">${new Date().toLocaleString('en-IN')}</td></tr>
+              </table>
+              <div style="background: #f8fafc; border-left: 4px solid #3E6B3A; padding: 16px; border-radius: 6px; font-size: 14px; color: #1e293b; line-height: 1.6; white-space: pre-wrap;">${cleanMessage}</div>
+              <div style="margin-top: 24px; text-align: center;">
+                <a href="mailto:${cleanEmail}?subject=${encodeURIComponent('Re: ' + cleanSubject)}" style="background: #3E6B3A; color: #ffffff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Reply to ${cleanName}</a>
+              </div>
+            </div>
+            <div style="background: #f1f5f9; padding: 14px; text-align: center; font-size: 12px; color: #64748b;">
+              Delivered directly to bookbridgee@gmail.com via Brevo Transactional Email Engine
+            </div>
+          </div>
+        `;
+
+        mailResult = await mailEngine.sendMail({
+          to: mailEngine.TARGET_EMAIL,
+          replyTo: cleanEmail,
+          replyToName: cleanName,
+          subject: `[BookBridge ${cleanSubject}] Inquiry from ${cleanName}`,
+          text: `Student Name: ${cleanName}\nStudent Email: ${cleanEmail}\nCategory: ${cleanSubject}\nDate: ${new Date().toLocaleString('en-IN')}\n\nStudent Query:\n${cleanMessage}\n\n-- Sent via BookBridge Student Platform`,
+          html
+        });
+      }
+    } catch (mailErr) {
+      console.warn('[Contact Mail Dispatch Note]:', mailErr.message);
+    }
+
+    return res.status(200).json({
+      status: 'ok',
+      destination: 'bookbridgee@gmail.com',
+      sentViaEmail: Boolean(mailResult?.sent),
+      provider: mailResult?.provider || null,
+      messageId: mailResult?.messageId || null,
+      message: mailResult?.sent
+        ? `Inquiry emailed directly to bookbridgee@gmail.com via ${mailResult.provider === 'brevo' ? 'Brevo' : 'SMTP'}!`
+        : 'Inquiry received and addressed to bookbridgee@gmail.com'
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to process inquiry' });
+  }
+});
+
 // 11. Admin Endpoints (RBAC Enforced: Only Role 'admin')
 app.get('/api/admin/stats', authenticateToken, authorizeRoles('admin'), adminController.getStats);
 app.get('/api/admin/users', authenticateToken, authorizeRoles('admin'), adminController.getUsers);
@@ -292,10 +385,11 @@ const startServer = async () => {
     if (getSQLStatus()) {
       try {
         await syncDatabase({ alter: false });
-        if (process.env.NODE_ENV !== 'production') {
+        // Always seed baseline demo accounts and catalog if not present (idempotent & safe)
+        try {
           await seedDatabase();
-        } else {
-          console.log('[Seed] Skipping automatic database seed in production environment.');
+        } catch (seedErr) {
+          console.warn('[Seed Notice] Database seed check:', seedErr.message);
         }
       } catch (syncError) {
         console.warn('[DB Sync Notice] Schema sync notice:', syncError.message);

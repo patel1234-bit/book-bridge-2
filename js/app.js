@@ -1342,12 +1342,19 @@ function initRegisterPage() {
     e.preventDefault();
     const submitBtn = document.getElementById('registerSubmitBtn');
 
+    const waInput = document.getElementById('regWhatsapp');
+    const waPrivacyInput = document.getElementById('regWhatsappPrivacy');
+    const waConsentInput = document.getElementById('regWhatsappConsent');
+
     const userData = {
       name: document.getElementById('regName').value.trim(),
       enrollment: document.getElementById('regEnrollment').value.trim(),
       branch: document.getElementById('regBranch').value,
       email: document.getElementById('regEmail').value.trim(),
-      password: document.getElementById('regPassword').value.trim()
+      password: document.getElementById('regPassword').value.trim(),
+      whatsapp: waInput ? waInput.value.trim() : '',
+      whatsappPrivacy: waPrivacyInput ? waPrivacyInput.value : 'share after I approve',
+      whatsappConsent: waConsentInput ? waConsentInput.checked : true
     };
 
     let valid = true;
@@ -1624,8 +1631,15 @@ async function initDashboardPage() {
         <div class="flex-between"><span style="color:var(--color-gray);">Enrollment</span><strong>${escapeHTML(user.enrollment || 'N/A')}</strong></div>
         <div class="flex-between"><span style="color:var(--color-gray);">Department</span><span class="badge badge-primary">${escapeHTML(user.branch || 'CE')}</span></div>
         <div class="flex-between"><span style="color:var(--color-gray);">Semester</span><strong>${escapeHTML(user.semester ? 'Sem ' + user.semester : 'N/A')}</strong></div>
+        <div class="flex-between"><span style="color:var(--color-gray);">WhatsApp</span><strong style="color:#25D366;">${escapeHTML(user.whatsapp || 'Not linked')}</strong></div>
+        <div class="flex-between"><span style="color:var(--color-gray);">WhatsApp Privacy</span><span class="badge badge-success" style="font-size:11px;">${escapeHTML(user.whatsappPrivacy || 'Share after I approve')}</span></div>
         <div class="flex-between"><span style="color:var(--color-gray);">Role</span><strong>${escapeHTML((user.role || 'student').toUpperCase())}</strong></div>
         <div class="flex-between"><span style="color:var(--color-gray);">Member Since</span><strong>${escapeHTML(new Date(user.createdAt || Date.now()).toLocaleDateString('en-IN', {year:'numeric',month:'short',day:'numeric'}))}</strong></div>
+      </div>
+      <div style="margin-top:16px;border-top:1px solid var(--color-border);padding-top:14px;text-align:center;">
+        <button onclick="handleEditWhatsAppSettings()" class="btn btn-outline btn-sm" style="font-size:12px;color:#25D366;border-color:#25D366;">
+          <i class="fa-brands fa-whatsapp"></i> Update WhatsApp Settings
+        </button>
       </div>
     `;
   }
@@ -1863,6 +1877,33 @@ window.handleMarkSold = async function(bookId, btn) {
   showToast('Marked as Sold!', 'success');
   if (btn) { btn.textContent = '✅ Sold'; btn.disabled = true; }
   setTimeout(() => initDashboardPage(), 1000);
+};
+
+/* ─── Profile WhatsApp Settings ─── */
+window.handleEditWhatsAppSettings = async function() {
+  const user = JSON.parse(localStorage.getItem('rcti_gtu_current_user') || '{}');
+  const currentNum = user.whatsapp ? user.whatsapp.replace('+91', '') : '';
+  const newNum = prompt('Enter your 10-digit WhatsApp number (leave empty to unlink):', currentNum);
+  if (newNum === null) return;
+  const isApproved = confirm('Click OK for "Share after I approve" (Recommended), or Cancel for "Hide" (Never share):');
+  const privacy = isApproved ? 'share after I approve' : 'hide';
+  try {
+    const res = await window.BookAPI.updateProfile({
+      whatsapp: newNum.trim(),
+      whatsappPrivacy: privacy,
+      whatsappConsent: true
+    });
+    if (res && res.user) {
+      localStorage.setItem('rcti_gtu_current_user', JSON.stringify(res.user));
+    }
+    showToast('WhatsApp settings updated successfully!', 'success');
+    setTimeout(() => {
+      if (typeof initDashboardPage === 'function') initDashboardPage();
+      else location.reload();
+    }, 600);
+  } catch (err) {
+    showToast(err.message || 'Could not update WhatsApp settings', 'danger');
+  }
 };
 
 window.handleDeleteMyBook = async function(bookId) {

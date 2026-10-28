@@ -84,7 +84,7 @@ exports.validateBookInput = (req, res, next) => {
   // Sanitize values
   req.body.title = title.trim();
   req.body.author = author.trim();
-  if (req.body.mode) req.body.mode = req.body.String(mode).toLowerCase();
+  if (req.body.mode) req.body.mode = String(mode).toLowerCase();
   if (req.body.price !== undefined) req.body.price = parseFloat(req.body.price) || 0;
   if (req.body.semester) req.body.semester = parseInt(req.body.semester, 10);
 

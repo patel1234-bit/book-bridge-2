@@ -216,6 +216,31 @@
     // Custom deal submit
     document.getElementById('bbDealCustomSubmit').addEventListener('click', handleDealCustomSubmit);
 
+    // Real-time typing debounce
+    let typingDebounce = null;
+    const chatInput = document.getElementById('bbChatInput');
+    chatInput?.addEventListener('input', () => {
+      if (window.__bbChatSocket && activePartner && activePartner.conversationId) {
+        try {
+          window.__bbChatSocket.emit('typing', {
+            conversationId: activePartner.conversationId,
+            isTyping: true
+          });
+        } catch (e) {}
+        clearTimeout(typingDebounce);
+        typingDebounce = setTimeout(() => {
+          if (window.__bbChatSocket && activePartner && activePartner.conversationId) {
+            try {
+              window.__bbChatSocket.emit('typing', {
+                conversationId: activePartner.conversationId,
+                isTyping: false
+              });
+            } catch (e) {}
+          }
+        }, 1200);
+      }
+    });
+
     document.getElementById('bbShareWaBtn')?.addEventListener('click', handleShareWhatsApp);
     document.getElementById('bbContinueWaBtn')?.addEventListener('click', handleContinueWhatsApp);
     document.getElementById('bbReportUserBtn')?.addEventListener('click', handleReportUser);
@@ -426,8 +451,10 @@
     try {
       if (window.BookAPI && typeof window.BookAPI.getConversationWhatsApp === 'function') {
         const data = await window.BookAPI.getConversationWhatsApp(activePartner.conversationId);
-        if (data && data.whatsapp) {
-          const digits = data.whatsapp.replace(/[^0-9]/g, '');
+        const rawNum = data?.whatsapp || data?.whatsappNumber;
+        if (rawNum) {
+          let digits = String(rawNum).replace(/[^0-9]/g, '');
+          if (digits.length === 10) digits = '91' + digits;
           const bookTitle = activeDeal?.bookTitle || 'your textbook';
           const msg = `Hi ${activePartner.name || ''}! I am contacting you from BookBridge regarding "${bookTitle}".`;
           const url = `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
@@ -473,6 +500,9 @@
 
   // Switch to Inbox View
   function showInboxView() {
+    if (window.__bbChatSocket && activePartner && activePartner.conversationId) {
+      try { window.__bbChatSocket.emit('leaveConversation', activePartner.conversationId); } catch (e) {}
+    }
     activePartner = null;
     activeDeal = null;
 
@@ -699,6 +729,13 @@
       waBtn.style.display = 'none'; // shown by refreshWhatsAppState once a server conversation exists
     }
     refreshWhatsAppState();
+
+    // Join conversation room in Socket.IO for real-time delivery
+    ensureActiveConversation().then((cid) => {
+      if (cid && window.__bbChatSocket) {
+        try { window.__bbChatSocket.emit('joinConversation', cid); } catch (e) {}
+      }
+    });
 
     // Render Deal Context Banner
     renderDealBanner();
@@ -1004,6 +1041,15 @@
   async function sendChatMessage(text, extra = {}) {
     if (!activePartner || !text) return;
 
+    if (window.__bbChatSocket && activePartner.conversationId) {
+      try {
+        window.__bbChatSocket.emit('typing', {
+          conversationId: activePartner.conversationId,
+          isTyping: false
+        });
+      } catch (e) {}
+    }
+
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
@@ -1195,15 +1241,64 @@
   function initRealtimeSocket() {
     try {
       const token = localStorage.getItem('bb_access_token');
-      if (!token || window.__bbChatSocket) return;
+      if (!token) return;
+      if (window.__bbChatSocket && window.__bbChatSocket.connected) return;
+
       const connect = () => {
         if (typeof window.io !== 'function') return;
+        if (window.__bbChatSocket) {
+          try { window.__bbChatSocket.disconnect(); } catch (e) {}
+        }
         const sock = window.io({ auth: { token }, transports: ['websocket', 'polling'] });
         window.__bbChatSocket = sock;
-        const onIncoming = () => window.dispatchEvent(new CustomEvent('bookbridge:new-message'));
-        sock.on('chatNotification', onIncoming);
+
+        sock.on('connect', () => {
+          if (activePartner && activePartner.conversationId) {
+            sock.emit('joinConversation', activePartner.conversationId);
+          }
+        });
+
+        const onIncoming = (msg) => {
+          playBeep('receive');
+          window.dispatchEvent(new CustomEvent('bookbridge:new-message', { detail: msg }));
+          updateUnreadBadge();
+          if (activePartner && (String(activePartner.conversationId) === String(msg?.conversationId) || String(activePartner.email).toLowerCase() === String(msg?.senderEmail).toLowerCase())) {
+            loadMessagesStream();
+          } else if (msg && msg.senderName && typeof showToast === 'function') {
+            showToast(`New message from ${msg.senderName}: ${msg.text || ''}`, 'info');
+          }
+        };
+
+        sock.on('chatNotification', (data) => onIncoming(data?.message || data));
         sock.on('newMessage', onIncoming);
+
+        // Real-time typing indicators from partner
+        sock.on('userTyping', (data) => {
+          if (!data || !activePartner) return;
+          if (String(activePartner.conversationId) === String(data.conversationId)) {
+            const typingEl = document.getElementById('bbTypingIndicator');
+            if (!typingEl) return;
+            const textEl = typingEl.querySelector('span');
+            if (data.isTyping) {
+              if (textEl) textEl.textContent = `${data.userName || 'Student'} is typing`;
+              typingEl.classList.add('active');
+            } else {
+              typingEl.classList.remove('active');
+            }
+          }
+        });
+
+        // Real-time WhatsApp consent approval notification
+        sock.on('whatsappApproved', (data) => {
+          if (activePartner && String(activePartner.conversationId) === String(data?.conversationId)) {
+            refreshWhatsAppState();
+            if (typeof showToast === 'function') {
+              showToast(`${data.approverName || activePartner.name} shared their WhatsApp! You can now continue on WhatsApp.`, 'success');
+            }
+          }
+        });
       };
+
       if (typeof window.io === 'function') return connect();
       const s = document.createElement('script');
       s.src = '/socket.io/socket.io.js';
@@ -1213,6 +1308,12 @@
       document.head.appendChild(s);
     } catch (e) { /* non-fatal */ }
   }
+
+  window.initChatSocket = initRealtimeSocket;
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'bb_access_token' && e.newValue) initRealtimeSocket();
+  });
+  window.addEventListener('bookbridge:auth-changed', () => initRealtimeSocket());
   initRealtimeSocket();
 
   // Auto-init on DOMContentLoaded

@@ -198,6 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     window.openBookBridgeeChat({
                         receiverEmail: seller.email,
                         receiverName: seller.name,
+                        receiverId: seller.id || book.sellerId || book.userId || undefined,
                         receiverPhone: seller.whatsapp,
                         bookId: book.id,
                         bookTitle: book.title,
@@ -332,6 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.openBookBridgeeChat({
                     receiverEmail: seller.email,
                     receiverName: seller.name,
+                    receiverId: seller.id || activeViewedBook.sellerId || activeViewedBook.userId || undefined,
                     receiverPhone: seller.whatsapp,
                     bookId: activeViewedBook.id,
                     bookTitle: activeViewedBook.title,

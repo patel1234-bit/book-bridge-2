@@ -441,9 +441,7 @@ window.BookAPI = {
   },
 
 
-  async updateProfile(profileData) {
-    return await _put('/users/profile', profileData);
-  },
+
 
   async updateBookStatus(id, status) {
     return await _put(`/books/${id}`, { status });

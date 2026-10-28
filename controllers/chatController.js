@@ -476,7 +476,7 @@ exports.getConversationWhatsApp = async (req, res, next) => {
  * or POST /api/conversations/:id/share-whatsapp
  * Participant grants consent to share their WhatsApp number in this conversation
  */
-exports.approveConversationWhatsApp = async (req, res, next) => {
+exports.approveConversationWhatsApp = async (req, res, next, io) => {
   try {
     const conversationId = req.params.id;
     const currentUserId = req.user.id;
@@ -513,6 +513,19 @@ exports.approveConversationWhatsApp = async (req, res, next) => {
           details: `User ${currentUserId} approved WhatsApp sharing for conversation ${conversationId}`
         });
       } catch (e) {}
+    }
+
+    // Real-time Socket.IO notification to partner
+    if (io) {
+      const partnerId = isUser1 ? conversation.user2Id : conversation.user1Id;
+      const payload = {
+        conversationId: conversation.id,
+        approverId: currentUserId,
+        approverName: req.user.name,
+        approved: true
+      };
+      io.to(`conversation_${conversation.id}`).emit('whatsappApproved', payload);
+      io.to(`user_${partnerId}`).emit('whatsappApproved', payload);
     }
 
     return res.json({

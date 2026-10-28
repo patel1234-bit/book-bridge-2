@@ -107,12 +107,16 @@ try {
 
     // Real-time typing indicators
     socket.on('typing', ({ conversationId, isTyping }) => {
-      if (conversationId && socket.user && socket.rooms.has(`conversation_${conversationId}`)) {
-        socket.to(`conversation_${conversationId}`).emit('userTyping', {
+      const room = `conversation_${conversationId}`;
+      if (conversationId && socket.user) {
+        if (!socket.rooms.has(room)) {
+          socket.join(room);
+        }
+        socket.to(room).emit('userTyping', {
           conversationId,
           userId: socket.user.id,
           userName: socket.user.name,
-          isTyping
+          isTyping: Boolean(isTyping)
         });
       }
     });
@@ -239,7 +243,7 @@ app.post('/api/conversations', authenticateToken, chatController.getOrCreateConv
 app.get('/api/conversations/:id/messages', authenticateToken, chatController.getMessages);
 app.post('/api/conversations/:id/messages', authenticateToken, validateMessageInput, (req, res, next) => chatController.sendMessage(req, res, next, io));
 app.get('/api/conversations/:id/whatsapp', authenticateToken, whatsappRateLimiter, chatController.getConversationWhatsApp);
-app.post(['/api/conversations/:id/whatsapp/approve', '/api/conversations/:id/share-whatsapp'], authenticateToken, chatController.approveConversationWhatsApp);
+app.post(['/api/conversations/:id/whatsapp/approve', '/api/conversations/:id/share-whatsapp'], authenticateToken, (req, res, next) => chatController.approveConversationWhatsApp(req, res, next, io));
 app.post(['/api/conversations/:id/report', '/api/users/report'], authenticateToken, chatController.reportUser);
 app.post(['/api/conversations/:id/block', '/api/users/block'], authenticateToken, chatController.blockUser);
 

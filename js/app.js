@@ -384,7 +384,9 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
     const sellerNameEscaped = escapeHTML(rawSellerName);
     const initials = escapeHTML(rawSellerName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase());
     const isDonation = b.price === 0 || b.mode === 'donate';
-    const coverImg = sanitizeUrl(b.cover || b.image, window.DEFAULT_BOOK_COVER);
+    const fallbackCover = 'browse_images/books/book' + (((Number(b.id || 1) - 1) % 25) + 1) + '.jpg';
+    const rawCover = b.coverUrl || b.cover || b.image || b.cover_url;
+    const coverImg = sanitizeUrl((rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : fallbackCover, fallbackCover);
     const isDigital = b.category === 'digital' && b.pdfUrl;
     const waNumber = ((b.seller?.whatsapp || '+919876543210')).replace(/[^0-9]/g, '');
     const waMsg = encodeURIComponent(`Hi ${rawSellerName}, I found your book "${b.title || 'book'}" on BookBridge! Is it still available?`);
@@ -417,7 +419,7 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
 
         <div class="book-cover">
           ${isDonation ? '<span class="donation-badge"><i class="fa-solid fa-gift"></i> FREE</span>' : ''}
-          <img src="${coverImg}" alt="${safeTitleForAttr}" loading="lazy" onerror="this.onerror=null; this.src=window.DEFAULT_BOOK_COVER;">
+          <img src="${coverImg}" alt="${safeTitleForAttr}" loading="lazy" onerror="this.onerror=null; this.src='${fallbackCover}';">
         </div>
 
         <div class="book-body">
@@ -1583,12 +1585,14 @@ async function initDashboardPage() {
         const safeBranch = escapeHTML(b.branch || 'CE');
         const safeMode = escapeHTML((b.mode || 'sell').toUpperCase());
         const safeStatus = escapeHTML(b.status || 'Available');
-        const safeCover = sanitizeUrl(b.cover || b.image, window.DEFAULT_BOOK_COVER);
+        const fallbackCover = 'browse_images/books/book' + (((Number(b.id || 1) - 1) % 25) + 1) + '.jpg';
+        const rawCover = b.coverUrl || b.cover || b.image || b.cover_url;
+        const safeCover = sanitizeUrl((rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : fallbackCover, fallbackCover);
         const safeId = encodeURIComponent(String(b.id || ''));
         return `
           <div class="book-card">
             <div class="book-cover" style="height:140px;">
-              <img src="${safeCover}" alt="${safeTitleAttr}" loading="lazy" onerror="this.onerror=null; this.src=window.DEFAULT_BOOK_COVER;">
+              <img src="${safeCover}" alt="${safeTitleAttr}" loading="lazy" onerror="this.onerror=null; this.src='${fallbackCover}';">
             </div>
             <div class="book-body">
               <div class="book-meta-row">

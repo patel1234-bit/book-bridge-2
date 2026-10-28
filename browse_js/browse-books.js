@@ -6,6 +6,25 @@ document.addEventListener("DOMContentLoaded", () => {
     // 1. Sync User Session in Navbar
     syncBrowseNavUser();
 
+    // Setup Mobile Menu Drawer
+    const mobileBtn = document.getElementById("mobileMenuToggle");
+    const mobileDrawer = document.getElementById("mobileNavDrawer");
+    if (mobileBtn && mobileDrawer) {
+        mobileBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const isActive = mobileDrawer.classList.toggle("active");
+            mobileBtn.innerHTML = isActive ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-bars"></i>';
+            mobileBtn.setAttribute("aria-expanded", isActive);
+        });
+        mobileDrawer.querySelectorAll("a").forEach(link => {
+            link.addEventListener("click", () => {
+                mobileDrawer.classList.remove("active");
+                mobileBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+                mobileBtn.setAttribute("aria-expanded", "false");
+            });
+        });
+    }
+
     // 2. Wire Hero Upload Button Auth Check
     initHeroUploadAuthCheck();
 
@@ -37,14 +56,14 @@ function syncBrowseNavUser() {
             const safeName = typeof escapeHTML === 'function' ? escapeHTML(rawName) : (window.escapeHTML ? window.escapeHTML(rawName) : String(rawName).replace(/</g, '&lt;'));
             navActions.innerHTML = `
                 <div class="d-flex align-items-center gap-2">
-                    <span class="fw-semibold text-success d-none d-sm-inline">
-                        <i class="bi bi-person-circle me-1"></i> ${safeName}
+                    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary);" class="d-none d-sm-inline">
+                        <i class="fa-solid fa-user-circle me-1"></i> ${safeName}
                     </span>
-                    <a href="dashboard.html" class="btn btn-outline-success btn-sm">
-                        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                    <a href="dashboard.html" class="btn btn-ghost btn-sm">
+                        <i class="fa-solid fa-gauge me-1"></i> Dashboard
                     </a>
-                    <button id="btnBrowseLogout" class="btn btn-outline-danger btn-sm" title="Log Out">
-                        <i class="bi bi-box-arrow-right"></i>
+                    <button id="btnBrowseLogout" class="btn btn-ghost btn-sm" title="Log Out">
+                        Logout
                     </button>
                 </div>
             `;
@@ -205,8 +224,9 @@ async function loadLiveBooksFromAPI() {
                 const isFree = ab.mode === "donate" || ab.type === "Donate" || Number(ab.price) === 0;
                 const isExchange = ab.mode === "exchange" || ab.type === "Exchange";
 
-                const defaultCover = window.DEFAULT_BOOK_COVER || "browse_images/books/book1.jpg";
-                const bookCover = ab.cover || ab.image || ab.cover_url || defaultCover;
+                const defaultCover = "browse_images/books/book" + (((Number(ab.id || 1) - 1) % 25) + 1) + ".jpg";
+                const rawCover = ab.coverUrl || ab.cover || ab.image || ab.cover_url;
+                const bookCover = (rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : defaultCover;
 
                 const sellerData = ab.seller || (ab.seller_details ? {
                     name: ab.seller_details.full_name || ab.seller_name || "Student Seller",
@@ -237,6 +257,10 @@ async function loadLiveBooksFromAPI() {
                 };
 
                 if (existingIdx >= 0) {
+                    const prevImage = books[existingIdx].image || books[existingIdx].cover;
+                    const resolvedCover = (bookCover && bookCover !== window.DEFAULT_BOOK_COVER) ? bookCover : (prevImage || defaultCover);
+                    normalized.image = resolvedCover;
+                    normalized.cover = resolvedCover;
                     books[existingIdx] = { ...books[existingIdx], ...normalized };
                 } else {
                     // Prepend user-listed books so visitors see them at the top of the catalog

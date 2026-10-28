@@ -35,36 +35,7 @@ img{
     display:block;
 }
 
-/* ==========================================
-   Navbar
-========================================== */
-
-.navbar{
-    background:#fff;
-    box-shadow:0 3px 15px rgba(0,0,0,.08);
-}
-
-.navbar-brand{
-    font-size:2rem;
-    font-weight:700;
-    color:#3E6B3A !important;
-}
-
-.nav-link{
-    font-weight:500;
-    color:#333 !important;
-    margin:0 8px;
-    transition:.3s;
-}
-
-.nav-link:hover{
-    color:#3E6B3A !important;
-}
-
-.nav-link.active{
-    color:#3E6B3A !important;
-    font-weight:600;
-}
+/* Navbar styles handled by unified style.css */
 
 /* Buttons */
 
@@ -459,57 +430,7 @@ img{
 }
 
 
-/* ==========================================
-   Footer
-========================================== */
-
-.footer{
-    background:#222;
-    color:#ffffff;
-    padding:70px 0 30px;
-}
-
-.footer h4,
-.footer h5{
-    color:#ffffff;
-    margin-bottom:20px;
-    font-weight:700;
-}
-
-.footer p{
-    color:#d8d8d8;
-    line-height:1.8;
-}
-
-.footer ul{
-    padding:0;
-    margin:0;
-    list-style:none;
-}
-
-.footer ul li{
-    margin-bottom:12px;
-}
-
-.footer ul li a{
-    color:#d8d8d8;
-    text-decoration:none;
-    transition:.3s;
-}
-
-.footer ul li a:hover{
-    color:#ffffff;
-    padding-left:6px;
-}
-
-.footer hr{
-    border-color:rgba(255,255,255,.15);
-    margin:35px 0 20px;
-}
-
-.footer .text-center{
-    color:#d8d8d8;
-}
+/* Footer styles handled by unified style.css */
 
 /* ==========================================
    Scrollbar
@@ -628,14 +549,5 @@ img{
         font-size:20px;
     }
 
-    .footer{
-        text-align:center;
     }
-
-    .footer h4,
-    .footer h5{
-        margin-top:15px;
-    }
-
-}
 

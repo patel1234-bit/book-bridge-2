@@ -68,7 +68,9 @@ function renderBooks(bookList = books) {
         const actionIcon = isFree ? "bi-gift-fill" : (isExchange ? "bi-arrow-left-right" : "bi-cart-check-fill");
         const actionTitle = isFree ? "Claim Free Book" : (isExchange ? "Swap / Exchange Book" : "Buy Book & Contact Seller");
 
-        const bookImg = book.image || book.cover || DEFAULT_BOOK_COVER;
+        const fallbackCover = `browse_images/books/book${((Number(book.id || 1) - 1) % 25) + 1}.jpg`;
+        const rawCover = book.coverUrl || book.image || book.cover;
+        const bookImg = (rawCover && rawCover !== DEFAULT_BOOK_COVER) ? rawCover : fallbackCover;
 
         // Create Book Card
         const bookCard = `
@@ -80,7 +82,7 @@ function renderBooks(bookList = books) {
                         alt="${escapeHTML(book.title || 'Book Cover')}"
                         class="book-image"
                         loading="lazy"
-                        onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; this.src=window.DEFAULT_BOOK_COVER;}">
+                        onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; this.src='${fallbackCover}';}">
 
                     <div class="book-content">
                         <!-- Book Badges -->
@@ -219,9 +221,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const modalImg = document.getElementById("modalBookImage");
             if (modalImg) {
-                const src = book.image || book.cover || DEFAULT_BOOK_COVER;
+                const fallbackModalCover = `browse_images/books/book${((Number(book.id || 1) - 1) % 25) + 1}.jpg`;
+                const rawCover = book.coverUrl || book.image || book.cover;
+                const src = (rawCover && rawCover !== DEFAULT_BOOK_COVER) ? rawCover : fallbackModalCover;
                 modalImg.src = src;
-                modalImg.onerror = function() { this.onerror = null; this.src = DEFAULT_BOOK_COVER; };
+                modalImg.onerror = function() { this.onerror = null; this.src = fallbackModalCover; };
                 modalImg.alt = book.title || 'Book Image';
             }
 

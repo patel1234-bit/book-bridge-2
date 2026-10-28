@@ -15,17 +15,46 @@
 
   <header class="navbar" id="navbar">
     <div class="navbar-inner">
-      <a href="index.html" class="brand"><div class="brand-icon"><img src="logo.png.jpeg" alt="BookBridge Logo"></div><div><div class="brand-name">BookBridge</div><div class="brand-tagline">Bridge Books. Build Minds.</div></div></a>
-      <nav class="nav-links">
-        <a href="index.html" class="nav-link">Home</a><a href="browse.html" class="nav-link">Buy Books</a><a href="sell.html" class="nav-link">Sell Books</a><a href="exchange.html" class="nav-link">Exchange</a><a href="donate.html" class="nav-link">Donate</a><a href="about.html" class="nav-link">About</a><a href="contact.html" class="nav-link">Contact</a>
+      <a href="index.html" class="brand" aria-label="BookBridge Home">
+        <div class="brand-icon"><img src="logo.png.jpeg" alt="BookBridge Logo"></div>
+        <div>
+          <div class="brand-name">BookBridge</div>
+          <div class="brand-tagline">Bridge the Gap Between Books and Readers</div>
+        </div>
+      </a>
+      <nav class="nav-links" aria-label="Main Navigation">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="browse.html" class="nav-link">Buy Books</a>
+        <a href="sell.html" class="nav-link">Sell Books</a>
+        <a href="exchange.html" class="nav-link">Exchange</a>
+        <a href="donate.html" class="nav-link">Donate</a>
+        <a href="about.html" class="nav-link">About</a>
+        <a href="contact.html" class="nav-link">Contact</a>
       </nav>
-      <div class="nav-actions" id="navLoginBtn"><a href="login.html" class="btn btn-ghost">Login</a><a href="register.html" class="btn btn-primary">Get Started</a></div>
-      <button class="mobile-toggle" id="mobileMenuToggle"><i class="fa-solid fa-bars"></i></button>
+      <div class="nav-actions">
+        <a href="login.html" class="btn btn-ghost" id="navLoginBtn">Login</a>
+        <a href="register.html" class="btn btn-primary" id="navRegisterBtn">Get Started</a>
+      </div>
+      <button class="mobile-toggle" id="mobileMenuToggle" aria-label="Toggle Navigation Menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
     </div>
   </header>
-  <div class="mobile-drawer" id="mobileNavDrawer">
-    <div class="drawer-links"><a href="index.html" class="drawer-link">Home <i class="fa-solid fa-chevron-right"></i></a><a href="browse.html" class="drawer-link">Buy Books <i class="fa-solid fa-chevron-right"></i></a><a href="sell.html" class="drawer-link">Sell Books <i class="fa-solid fa-chevron-right"></i></a><a href="exchange.html" class="drawer-link">Exchange <i class="fa-solid fa-chevron-right"></i></a><a href="donate.html" class="drawer-link">Donate <i class="fa-solid fa-chevron-right"></i></a><a href="about.html" class="drawer-link">About <i class="fa-solid fa-chevron-right"></i></a><a href="contact.html" class="drawer-link">Contact <i class="fa-solid fa-chevron-right"></i></a></div>
-    <div class="drawer-actions" id="mobileDrawerActions"><a href="login.html" class="btn btn-secondary btn-block">Login</a></div>
+  <div class="mobile-drawer" id="mobileNavDrawer" role="navigation" aria-label="Mobile Navigation">
+    <div class="drawer-links">
+      <a href="index.html" class="drawer-link">Home <i class="fa-solid fa-chevron-right"></i></a>
+      <a href="browse.html" class="drawer-link">Buy Books <i class="fa-solid fa-chevron-right"></i></a>
+      <a href="sell.html" class="drawer-link">Sell Books <i class="fa-solid fa-chevron-right"></i></a>
+      <a href="exchange.html" class="drawer-link">Exchange <i class="fa-solid fa-chevron-right"></i></a>
+      <a href="donate.html" class="drawer-link">Donate <i class="fa-solid fa-chevron-right"></i></a>
+      <a href="about.html" class="drawer-link">About <i class="fa-solid fa-chevron-right"></i></a>
+      <a href="contact.html" class="drawer-link">Contact <i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+    <div class="drawer-actions" id="mobileDrawerActions">
+      <a href="sell.html" class="btn btn-primary btn-block"><i class="fa-solid fa-tag me-1"></i> Sell a Book</a>
+      <a href="login.html" class="btn btn-secondary btn-block">Login to Account</a>
+      <a href="register.html" class="btn btn-ghost btn-block">Create Free Account</a>
+    </div>
   </div>
 
   <main id="main-content">
@@ -79,9 +108,10 @@
           <div class="card" style="padding: 24px;">
             <h3 style="margin-bottom: 16px;">Quick Actions</h3>
             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-              <a href="exchange.html" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Upload Book</a>
-              <a href="browse.html" class="btn btn-secondary"><i class="fa-solid fa-search"></i> Browse Books</a>
-              <a href="donate.html" class="btn btn-ghost" style="border: 1px solid var(--color-border);"><i class="fa-solid fa-gift"></i> Donate</a>
+              <a href="sell.html" class="btn btn-primary"><i class="fa-solid fa-tag me-1"></i> Sell / List a Book</a>
+              <a href="browse.html" class="btn btn-secondary"><i class="fa-solid fa-cart-shopping me-1"></i> Buy Books</a>
+              <a href="exchange.html" class="btn btn-ghost" style="border: 1px solid var(--color-border);"><i class="fa-solid fa-arrows-rotate me-1"></i> Exchange</a>
+              <a href="donate.html" class="btn btn-ghost" style="border: 1px solid var(--color-border);"><i class="fa-solid fa-gift me-1"></i> Donate</a>
             </div>
           </div>
         </div>
@@ -94,8 +124,8 @@
             <div class="empty-state">
               <div class="empty-state-icon">📖</div>
               <h3>No Books Listed</h3>
-              <p>Upload your first book to start exchanging with students.</p>
-              <a href="exchange.html" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Upload Book</a>
+              <p>List your textbook for sale or exchange to connect with other campus students.</p>
+              <a href="sell.html" class="btn btn-primary btn-sm"><i class="fa-solid fa-tag me-1"></i> Sell / List a Book</a>
             </div>
           </div>
         </div>
@@ -187,7 +217,8 @@
         </div>
 
         <div class="footer-col">
-          <h4>Support</h4>
+          <h4>Support & Contact</h4>
+          <a href="mailto:bookbridgee@gmail.com"><i class="fa-solid fa-envelope me-1"></i> bookbridgee@gmail.com</a>
           <a href="contact.html">Help Center</a>
           <a href="contact.html#faq">FAQs</a>
           <a href="contact.html">Report Issue</a>

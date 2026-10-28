@@ -18,9 +18,11 @@ const { seedDatabase } = require('./config/seed');
 
 // Security & Middleware
 const { configureSecurity } = require('./middleware/security');
-const { authenticateToken, authorizeRoles } = require('./middleware/authMiddleware');
+const { authenticateToken, optionalAuth, authorizeRoles } = require('./middleware/authMiddleware');
 const {
   validateBookInput,
+  validateBookUpdate,
+  validateProfileUpdate,
   validateRegisterInput,
   validateLoginInput,
   validateForgotPasswordInput,
@@ -182,11 +184,23 @@ app.get(['/api/ping', '/ping'], (req, res) => {
 // 7. Platform Statistics (Computed live from Database)
 app.get(['/api/statistics', '/api/statistics/'], bookController.getStatistics);
 
+
+// WhatsApp endpoint rate limiter (10 per minute)
+let rateLimit = null;
+try { rateLimit = require('express-rate-limit'); } catch (e) {}
+const whatsappRateLimiter = rateLimit ? rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 10,
+  message: { error: 'Too many WhatsApp requests. Limit is 10 per minute.', status: 429 },
+  standardHeaders: true,
+  legacyHeaders: false
+}) : (req, res, next) => next();
+
 // 8. Authentication & Password Reset Endpoints
 app.post(['/api/register', '/api/auth/register'], validateRegisterInput, authController.register);
 app.post(['/api/login', '/api/auth/login'], validateLoginInput, authController.login);
 app.get(['/api/auth/me', '/api/users/profile'], authenticateToken, authController.getMe);
-app.put('/api/users/profile', authenticateToken, authController.updateProfile);
+app.put('/api/users/profile', authenticateToken, validateProfileUpdate, authController.updateProfile);
 app.post('/api/auth/forgot-password', validateForgotPasswordInput, authController.forgotPassword);
 app.get('/api/auth/verify-reset-token/:token', authController.verifyResetToken);
 app.post('/api/auth/reset-password', validateResetPasswordInput, authController.resetPassword);
@@ -195,7 +209,8 @@ app.post('/api/auth/reset-password', validateResetPasswordInput, authController.
 app.get('/api/books', bookController.getBooks);
 app.get('/api/books/:id', bookController.getBookById);
 app.post('/api/books', authenticateToken, validateBookInput, (req, res, next) => bookController.createBook(req, res, next, io));
-app.put('/api/books/:id', authenticateToken, validateBookInput, (req, res, next) => bookController.updateBook(req, res, next, io));
+app.put('/api/books/:id', authenticateToken, validateBookUpdate, (req, res, next) => bookController.updateBook(req, res, next, io));
+app.patch(['/api/books/:id/status', '/api/books/:id'], authenticateToken, validateBookUpdate, (req, res, next) => bookController.updateBook(req, res, next, io));
 app.delete('/api/books/:id', authenticateToken, (req, res, next) => bookController.deleteBook(req, res, next, io));
 
 // 10. Persistent Real-Time Chat & Messaging Endpoints
@@ -203,6 +218,10 @@ app.get('/api/conversations', authenticateToken, chatController.getConversations
 app.post('/api/conversations', authenticateToken, chatController.getOrCreateConversation);
 app.get('/api/conversations/:id/messages', authenticateToken, chatController.getMessages);
 app.post('/api/conversations/:id/messages', authenticateToken, validateMessageInput, (req, res, next) => chatController.sendMessage(req, res, next, io));
+app.get('/api/conversations/:id/whatsapp', authenticateToken, whatsappRateLimiter, chatController.getConversationWhatsApp);
+app.post(['/api/conversations/:id/whatsapp/approve', '/api/conversations/:id/share-whatsapp'], authenticateToken, chatController.approveConversationWhatsApp);
+app.post(['/api/conversations/:id/report', '/api/users/report'], authenticateToken, chatController.reportUser);
+app.post(['/api/conversations/:id/block', '/api/users/block'], authenticateToken, chatController.blockUser);
 
 // Legacy Messaging API support (backward compatibility for existing frontend)
 app.get('/api/messages', authenticateToken, chatController.getLegacyMessages);

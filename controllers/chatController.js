@@ -6,7 +6,7 @@
  */
 
 const { Op } = require('sequelize');
-const { Conversation, Message, User, Book, Notification } = require('../models');
+const { Conversation, Message, User, Book, Notification, AuditLog } = require('../models');
 
 /**
  * GET /api/conversations
@@ -21,8 +21,8 @@ exports.getConversations = async (req, res, next) => {
         [Op.or]: [{ user1Id: currentUserId }, { user2Id: currentUserId }]
       },
       include: [
-        { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
-        { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
+        { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
+        { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
         { model: Book, as: 'book', attributes: ['id', 'title', 'price', 'mode', 'coverUrl', 'status'] }
       ],
       order: [['lastMessageAt', 'DESC']]
@@ -366,6 +366,228 @@ exports.sendLegacyMessage = async (req, res, next, io) => {
       sender_name: req.user.name,
       receiver_email: recipient.email,
       receiver_name: recipient.name
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+/**
+ * GET /api/conversations/:id/whatsapp
+ * Privacy-safe WhatsApp phone number retrieval:
+ * - Requester must be a participant
+ * - Other participant must have approved WhatsApp sharing for this conversation
+ * - Other participant must not have set whatsappPrivacy to 'hide'
+ * - Logged in AuditLog
+ */
+exports.getConversationWhatsApp = async (req, res, next) => {
+  try {
+    const conversationId = req.params.id;
+    const currentUserId = req.user.id;
+
+    const conversation = await Conversation.findByPk(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.', status: 404 });
+    }
+
+    const isUser1 = conversation.user1Id === currentUserId;
+    const isUser2 = conversation.user2Id === currentUserId;
+    if (!isUser1 && !isUser2) {
+      return res.status(403).json({
+        error: 'Access denied. You are not a participant in this conversation.',
+        status: 403
+      });
+    }
+
+    const otherUserId = isUser1 ? conversation.user2Id : conversation.user1Id;
+    const isApproved = isUser1 ? conversation.user2ApprovedWhatsapp : conversation.user1ApprovedWhatsapp;
+
+    if (!isApproved) {
+      return res.status(403).json({
+        error: 'WhatsApp sharing has not been approved by this user for this conversation.',
+        status: 403
+      });
+    }
+
+    const otherUser = await User.findByPk(otherUserId);
+    if (!otherUser) {
+      return res.status(404).json({ error: 'User not found.', status: 404 });
+    }
+
+    if (otherUser.whatsappPrivacy === 'hide') {
+      return res.status(403).json({
+        error: 'This user has configured their WhatsApp number to remain hidden.',
+        status: 403
+      });
+    }
+
+    if (!otherUser.whatsapp || otherUser.whatsapp.trim() === '') {
+      return res.status(404).json({
+        error: 'This user has not linked a WhatsApp number.',
+        status: 404
+      });
+    }
+
+    // Log access in AuditLog
+    if (AuditLog) {
+      try {
+        await AuditLog.create({
+          userId: currentUserId,
+          action: 'WHATSAPP_REQUEST',
+          ipAddress: req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          details: `User ${currentUserId} accessed WhatsApp for conversation ${conversationId} (partner user: ${otherUserId})`
+        });
+      } catch (err) {
+        console.warn('[AuditLog] Failed to log WhatsApp retrieval:', err.message);
+      }
+    }
+
+    return res.json({
+      whatsapp: otherUser.whatsapp,
+      whatsappNumber: otherUser.whatsapp,
+      name: otherUser.name
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/conversations/:id/whatsapp/approve
+ * or POST /api/conversations/:id/share-whatsapp
+ * Participant grants consent to share their WhatsApp number in this conversation
+ */
+exports.approveConversationWhatsApp = async (req, res, next) => {
+  try {
+    const conversationId = req.params.id;
+    const currentUserId = req.user.id;
+
+    const conversation = await Conversation.findByPk(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.', status: 404 });
+    }
+
+    const isUser1 = conversation.user1Id === currentUserId;
+    const isUser2 = conversation.user2Id === currentUserId;
+    if (!isUser1 && !isUser2) {
+      return res.status(403).json({
+        error: 'Access denied. You are not a participant in this conversation.',
+        status: 403
+      });
+    }
+
+    if (isUser1) {
+      conversation.user1ApprovedWhatsapp = true;
+    } else {
+      conversation.user2ApprovedWhatsapp = true;
+    }
+
+    await conversation.save();
+
+    if (AuditLog) {
+      try {
+        await AuditLog.create({
+          userId: currentUserId,
+          action: 'WHATSAPP_APPROVE',
+          ipAddress: req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          details: `User ${currentUserId} approved WhatsApp sharing for conversation ${conversationId}`
+        });
+      } catch (e) {}
+    }
+
+    return res.json({
+      success: true,
+      message: 'WhatsApp sharing approved for this conversation.',
+      conversationId: conversation.id,
+      approved: true
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/conversations/:id/report
+ */
+exports.reportUser = async (req, res, next) => {
+  try {
+    const conversationId = req.params.id;
+    const currentUserId = req.user.id;
+    const { reason, details } = req.body;
+
+    const conversation = await Conversation.findByPk(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.', status: 404 });
+    }
+
+    const isUser1 = conversation.user1Id === currentUserId;
+    const isUser2 = conversation.user2Id === currentUserId;
+    if (!isUser1 && !isUser2) {
+      return res.status(403).json({ error: 'Access denied. You are not a participant in this conversation.', status: 403 });
+    }
+
+    const reportedUserId = isUser1 ? conversation.user2Id : conversation.user1Id;
+
+    if (AuditLog) {
+      try {
+        await AuditLog.create({
+          userId: currentUserId,
+          action: 'USER_REPORTED',
+          ipAddress: req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          details: `User ${currentUserId} reported User ${reportedUserId} in conversation ${conversationId}. Reason: ${reason || 'Violation'} - ${details || ''}`
+        });
+      } catch (e) {}
+    }
+
+    return res.json({
+      success: true,
+      message: 'Thank you for your report. Our campus trust and safety team will review this report.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/conversations/:id/block
+ */
+exports.blockUser = async (req, res, next) => {
+  try {
+    const conversationId = req.params.id;
+    const currentUserId = req.user.id;
+
+    const conversation = await Conversation.findByPk(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.', status: 404 });
+    }
+
+    const isUser1 = conversation.user1Id === currentUserId;
+    const isUser2 = conversation.user2Id === currentUserId;
+    if (!isUser1 && !isUser2) {
+      return res.status(403).json({ error: 'Access denied. You are not a participant in this conversation.', status: 403 });
+    }
+
+    const blockedUserId = isUser1 ? conversation.user2Id : conversation.user1Id;
+
+    if (AuditLog) {
+      try {
+        await AuditLog.create({
+          userId: currentUserId,
+          action: 'USER_BLOCKED',
+          ipAddress: req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          details: `User ${currentUserId} blocked User ${blockedUserId} in conversation ${conversationId}`
+        });
+      } catch (e) {}
+    }
+
+    return res.json({
+      success: true,
+      message: 'User has been blocked.'
     });
   } catch (error) {
     next(error);

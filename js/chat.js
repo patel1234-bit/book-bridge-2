@@ -210,6 +210,11 @@
     // Custom deal submit
     document.getElementById('bbDealCustomSubmit').addEventListener('click', handleDealCustomSubmit);
 
+    document.getElementById('bbShareWaBtn')?.addEventListener('click', handleShareWhatsApp);
+    document.getElementById('bbContinueWaBtn')?.addEventListener('click', handleContinueWhatsApp);
+    document.getElementById('bbReportUserBtn')?.addEventListener('click', handleReportUser);
+    document.getElementById('bbBlockUserBtn')?.addEventListener('click', handleBlockUser);
+
     // Initial badge update
     updateUnreadBadge();
   }
@@ -243,6 +248,80 @@
       drawer.classList.remove('open');
     }
   };
+
+
+  async function handleShareWhatsApp() {
+    if (!activePartner || !activePartner.conversationId) {
+      if (typeof showToast === 'function') showToast('Please select or open a conversation first', 'warning');
+      return;
+    }
+    const btn = document.getElementById('bbShareWaBtn');
+    try {
+      if (window.BookAPI && typeof window.BookAPI.approveConversationWhatsApp === 'function') {
+        await window.BookAPI.approveConversationWhatsApp(activePartner.conversationId);
+      }
+      if (typeof showToast === 'function') showToast('You approved sharing your WhatsApp for this conversation!', 'success');
+      if (btn) {
+        btn.textContent = '✓ WhatsApp Shared';
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+      }
+    } catch (err) {
+      if (typeof showToast === 'function') showToast(err.message || 'Could not approve WhatsApp', 'danger');
+    }
+  }
+
+  async function handleContinueWhatsApp() {
+    if (!activePartner || !activePartner.conversationId) {
+      if (typeof showToast === 'function') showToast('Please select or open a conversation first', 'warning');
+      return;
+    }
+    try {
+      if (window.BookAPI && typeof window.BookAPI.getConversationWhatsApp === 'function') {
+        const data = await window.BookAPI.getConversationWhatsApp(activePartner.conversationId);
+        if (data && data.whatsapp) {
+          const digits = data.whatsapp.replace(/[^0-9]/g, '');
+          const bookTitle = activeDeal?.bookTitle || 'your textbook';
+          const msg = `Hi ${activePartner.name || ''}! I am contacting you from BookBridge regarding "${bookTitle}".`;
+          const url = `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+          window.open(url, '_blank');
+          return;
+        }
+      }
+      if (typeof showToast === 'function') showToast('Could not retrieve verified WhatsApp number', 'warning');
+    } catch (err) {
+      const msg = err.data?.error || err.message || 'WhatsApp sharing has not been approved yet.';
+      if (typeof showToast === 'function') showToast(msg, 'warning');
+    }
+  }
+
+  async function handleReportUser() {
+    if (!activePartner || !activePartner.conversationId) return;
+    const reason = prompt(`Reason for reporting ${activePartner.name}:`);
+    if (!reason || !reason.trim()) return;
+    try {
+      if (window.BookAPI && typeof window.BookAPI.reportUser === 'function') {
+        await window.BookAPI.reportUser(activePartner.conversationId, reason.trim());
+      }
+      if (typeof showToast === 'function') showToast('User report submitted to campus moderation.', 'success');
+    } catch (err) {
+      if (typeof showToast === 'function') showToast(err.message || 'Report failed', 'danger');
+    }
+  }
+
+  async function handleBlockUser() {
+    if (!activePartner || !activePartner.conversationId) return;
+    if (!confirm(`Are you sure you want to block ${activePartner.name}?`)) return;
+    try {
+      if (window.BookAPI && typeof window.BookAPI.blockUser === 'function') {
+        await window.BookAPI.blockUser(activePartner.conversationId);
+      }
+      if (typeof showToast === 'function') showToast('User has been blocked.', 'info');
+      showInboxView();
+    } catch (err) {
+      if (typeof showToast === 'function') showToast(err.message || 'Block failed', 'danger');
+    }
+  }
 
   // Switch to Inbox View
   function showInboxView() {

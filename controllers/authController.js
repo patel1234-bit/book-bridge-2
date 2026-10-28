@@ -48,7 +48,7 @@ function formatSafeUser(user) {
  */
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, enrollment, branch, semester, division, academicYear, whatsapp, role } = req.body;
+    const { name, email, password, enrollment, branch, semester, division, academicYear, whatsapp, role, whatsappPrivacy, whatsappConsent } = req.body;
 
     const normalizedEmail = (email || '').trim().toLowerCase();
 
@@ -87,7 +87,9 @@ exports.register = async (req, res, next) => {
       semester: semester ? parseInt(semester, 10) : 1,
       division: division || 'Div A',
       academicYear: academicYear || '2025-2026',
-      whatsapp: whatsapp ? whatsapp.trim() : '',
+      whatsapp: whatsapp || '',
+      whatsappPrivacy: whatsappPrivacy || 'share after I approve',
+      whatsappConsent: Boolean(whatsappConsent),
       role: (role && ['faculty', 'student'].includes(role.toLowerCase())) ? role.toLowerCase() : 'student',
       isActive: true
     });
@@ -232,10 +234,12 @@ exports.updateProfile = async (req, res, next) => {
       return res.status(404).json({ error: 'User account not found.' });
     }
 
-    const { name, whatsapp, branch, semester, division, academicYear } = req.body;
+    const { name, whatsapp, branch, semester, division, academicYear, whatsappPrivacy, whatsappConsent } = req.body;
 
     if (name && name.trim()) user.name = name.trim();
-    if (whatsapp !== undefined) user.whatsapp = whatsapp.trim();
+    if (whatsapp !== undefined) user.whatsapp = whatsapp;
+    if (whatsappPrivacy !== undefined) user.whatsappPrivacy = whatsappPrivacy;
+    if (whatsappConsent !== undefined) user.whatsappConsent = Boolean(whatsappConsent);
     if (branch) user.branch = branch;
     if (semester) user.semester = parseInt(semester, 10);
     if (division) user.division = division;

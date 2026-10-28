@@ -1958,3 +1958,32 @@ async function renderSwapMatchmakerBanner(containerId) {
   `;
 }
 
+
+window.toggleProfileWaSettings = function() {
+  const wrap = document.getElementById('profileWaEditFormWrap');
+  if (wrap) wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+};
+
+window.saveProfileWaSettings = async function(btn) {
+  const wa = (document.getElementById('profWaInput')?.value || '').trim();
+  const privacy = document.getElementById('profWaPrivacySelect')?.value || 'share after I approve';
+
+  if (wa) {
+    const clean = wa.replace(/[\s\-\(\)]/g, '').replace(/^\+91/, '').replace(/^91/, '').replace(/^0/, '');
+    if (!/^[6-9]\d{9}$/.test(clean)) {
+      showToast('Please enter a valid 10-digit Indian WhatsApp number starting with 6-9', 'warning');
+      return;
+    }
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  try {
+    await window.BookAPI.updateProfile({ whatsapp: wa, whatsappPrivacy: privacy });
+    showToast('WhatsApp privacy settings updated!', 'success');
+    const cur = await window.BookAPI.getCurrentUser();
+    setTimeout(() => initDashboardPage(), 800);
+  } catch (err) {
+    showToast(err.message || 'Failed to update settings', 'danger');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save WhatsApp Privacy'; }
+  }
+};

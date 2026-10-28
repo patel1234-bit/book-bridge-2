@@ -68,6 +68,15 @@ const syncDatabase = async (options = {}) => {
   if (!sequelize) return false;
   try {
     await sequelize.sync(options);
+
+    // Ensure newly added columns exist in SQLite or development databases
+    if (sequelize.getDialect() === 'sqlite') {
+      try { await sequelize.query('ALTER TABLE users ADD COLUMN whatsappConsent BOOLEAN DEFAULT 0;'); } catch (e) {}
+      try { await sequelize.query("ALTER TABLE users ADD COLUMN whatsappPrivacy VARCHAR(50) DEFAULT 'share after I approve';"); } catch (e) {}
+      try { await sequelize.query('ALTER TABLE conversations ADD COLUMN user1ApprovedWhatsapp BOOLEAN DEFAULT 0;'); } catch (e) {}
+      try { await sequelize.query('ALTER TABLE conversations ADD COLUMN user2ApprovedWhatsapp BOOLEAN DEFAULT 0;'); } catch (e) {}
+    }
+
     console.log('[Database Sync] Relational tables synchronized successfully.');
     return true;
   } catch (error) {

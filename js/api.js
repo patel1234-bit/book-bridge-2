@@ -440,7 +440,32 @@ window.BookAPI = {
     }
   },
 
-  // ── WISHLIST ───────────────────────────────────────────────────────────
+
+  async updateProfile(profileData) {
+    return await _put('/users/profile', profileData);
+  },
+
+  async updateBookStatus(id, status) {
+    return await _put(`/books/${id}`, { status });
+  },
+
+  async getConversationWhatsApp(conversationId) {
+    return await _get(`/conversations/${conversationId}/whatsapp`);
+  },
+
+  async approveConversationWhatsApp(conversationId) {
+    return await _post(`/conversations/${conversationId}/whatsapp/approve`);
+  },
+
+  async reportUser(conversationId, reason = '', details = '') {
+    return await _post(`/conversations/${conversationId}/report`, { reason, details });
+  },
+
+  async blockUser(conversationId) {
+    return await _post(`/conversations/${conversationId}/block`);
+  },
+
+  // ── WISHLIST ──
 
   async toggleWishlist(bookId) {
     return window.BookDB ? window.BookDB.toggleWishlist(bookId) : false;

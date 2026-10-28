@@ -33,6 +33,14 @@ if (sequelize) {
       type: DataTypes.INTEGER,
       allowNull: false
     },
+    user1ApprovedWhatsapp: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    user2ApprovedWhatsapp: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
     lastMessageText: {
       type: DataTypes.TEXT,
       defaultValue: ''

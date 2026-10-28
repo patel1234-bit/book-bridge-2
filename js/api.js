@@ -267,6 +267,10 @@ window.BookAPI = {
   },
 
   async getCurrentUser() {
+    const token = _getToken();
+    if (!token) {
+      return null;
+    }
     try {
       const user = await _get('/auth/me');
       if (user) {
@@ -279,7 +283,25 @@ window.BookAPI = {
         try { return JSON.parse(stored); } catch (err) {}
       }
     }
-    return window.BookDB ? window.BookDB.getCurrentUser() : null;
+    return null;
+  },
+
+  async getAIRecommendations(branch = 'CE', semester = 5) {
+    try {
+      const books = await this.getBooks({ branch, semester });
+      if (Array.isArray(books) && books.length > 0) {
+        return books.slice(0, 4);
+      }
+      const fallback = await this.getBooks({ branch });
+      if (Array.isArray(fallback) && fallback.length > 0) {
+        return fallback.slice(0, 4);
+      }
+      const allBooks = await this.getBooks();
+      return Array.isArray(allBooks) ? allBooks.slice(0, 4) : [];
+    } catch (e) {
+      console.warn('[AI Recs] Could not load recommendations:', e.message);
+      return [];
+    }
   },
 
   async updateProfile(profileData) {

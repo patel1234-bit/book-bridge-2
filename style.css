@@ -612,7 +612,7 @@ p,
   position: sticky;
   top: 12px;
   z-index: var(--z-sticky);
-  max-width: var(--max-width);
+  max-width: min(var(--max-width), calc(100vw - 24px));
   margin: 12px auto;
   padding: 0 12px;
   background: var(--surface-glass);
@@ -690,13 +690,14 @@ p,
 }
 
 .nav-link {
-  padding: 8px 16px;
+  padding: 8px 12px;
   font-size: 15px;
   font-weight: var(--weight-medium);
   color: var(--color-gray);
   border-radius: var(--radius-sm);
   transition: all var(--tr-fast);
   position: relative;
+  white-space: nowrap;
 }
 
 .nav-link:hover {
@@ -724,7 +725,7 @@ p,
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -936,7 +937,7 @@ p,
 
 .hero-floating-card-1 {
   top: 24px;
-  left: -20px;
+  left: 0px;
 }
 
 .hero-float-icon {
@@ -2761,6 +2762,11 @@ textarea.form-input~.form-label {
   font-size: var(--text-small);
 }
 
+.contact-card p a {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
 /* ==========================================================================
    36. AUTH LAYOUT (Login/Register)
    ========================================================================== */
@@ -3156,12 +3162,12 @@ textarea.form-input~.form-label {
 
 .hero-floating-card-1 {
   top: -20px;
-  left: -20px;
+  left: 0px;
 }
 
 .hero-floating-card-2 {
   bottom: 20px;
-  right: -20px;
+  right: 0px;
   animation-delay: 2s;
 }
 
@@ -3580,8 +3586,38 @@ textarea.form-input~.form-label {
    39. RESPONSIVE DESIGN
    ========================================================================== */
 
+
+/* Large Tablet / Small Desktop (< 1200px) */
+@media (max-width: 1199px) {
+  .nav-links,
+  .nav-actions {
+    display: none !important;
+  }
+
+  .mobile-toggle {
+    display: flex !important;
+  }
+
+  .brand-tagline {
+    display: none;
+  }
+
+  .mobile-drawer {
+    top: 72px;
+  }
+}
+
 /* Tablet (< 1024px) */
 @media (max-width: 1024px) {
+  .fab-btn {
+    bottom: 84px;
+    right: 20px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  .hero-actions {
+    justify-content: center;
+  }
   :root {
     --text-h1: 34px;
     --text-h2: 28px;

@@ -130,19 +130,48 @@ function setupMobileMenu() {
   const drawer = document.getElementById('mobileNavDrawer');
   if (!btn || !drawer) return;
 
+  const svgHamburger = '<svg class="mobile-toggle-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+  const svgClose = '<svg class="mobile-toggle-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+  function closeDrawer() {
+    drawer.classList.remove('active');
+    btn.classList.remove('active');
+    btn.innerHTML = svgHamburger;
+    btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function openDrawer() {
+    drawer.classList.add('active');
+    btn.classList.add('active');
+    btn.innerHTML = svgClose;
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const isActive = drawer.classList.toggle('active');
-    btn.innerHTML = isActive ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-bars"></i>';
-    btn.setAttribute('aria-expanded', isActive);
+    if (drawer.classList.contains('active')) {
+      closeDrawer();
+    } else {
+      openDrawer();
+    }
   });
 
   drawer.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', () => {
-      drawer.classList.remove('active');
-      btn.innerHTML = '<i class="fa-solid fa-bars"></i>';
-      btn.setAttribute('aria-expanded', 'false');
+      closeDrawer();
     });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drawer.classList.contains('active')) {
+      closeDrawer();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (drawer.classList.contains('active') && !drawer.contains(e.target) && !btn.contains(e.target)) {
+      closeDrawer();
+    }
   });
 }
 
@@ -327,7 +356,7 @@ async function updateNavUserUI() {
   const role = escapeHTML((currentUser.role || 'student').toUpperCase());
   const safeName = escapeHTML(currentUser.name || currentUser.email || 'User');
   const userHTML = `
-    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary);">
+    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">
       <i class="fa-solid fa-user-circle"></i> ${safeName}
     </span>
     <a href="dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-gauge"></i> Dashboard</a>
@@ -677,15 +706,19 @@ async function initHomePage() {
   const aiSection = document.getElementById('aiRecommendationsSection');
   const aiGrid = document.getElementById('aiRecommendationsGrid');
   if (aiSection && aiGrid) {
-    const user = await window.BookAPI.getCurrentUser();
-    if (user) {
-      const recs = await window.BookAPI.getAIRecommendations(user.branch || 'CE', user.semester || 5);
-      if (recs && recs.length > 0) {
-        aiSection.style.display = 'block';
-        const branchInfo = document.getElementById('aiRecBranchInfo');
-        if (branchInfo) branchInfo.textContent = `Based on your profile: ${user.branch || 'CE'} · Semester ${user.semester || 5}`;
-        await renderBooksGrid(aiGrid, recs.slice(0, 4), 'View Details');
+    try {
+      const user = await window.BookAPI.getCurrentUser();
+      if (user && typeof window.BookAPI?.getAIRecommendations === 'function') {
+        const recs = await window.BookAPI.getAIRecommendations(user.branch || 'CE', user.semester || 5);
+        if (recs && recs.length > 0) {
+          aiSection.style.display = 'block';
+          const branchInfo = document.getElementById('aiRecBranchInfo');
+          if (branchInfo) branchInfo.textContent = `Based on your profile: ${user.branch || 'CE'} · Semester ${user.semester || 5}`;
+          await renderBooksGrid(aiGrid, recs.slice(0, 4), 'View Details');
+        }
       }
+    } catch (aiErr) {
+      console.warn('[AI Recommendations]', aiErr.message);
     }
   }
 }

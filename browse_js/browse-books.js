@@ -56,7 +56,7 @@ function syncBrowseNavUser() {
             const safeName = typeof escapeHTML === 'function' ? escapeHTML(rawName) : (window.escapeHTML ? window.escapeHTML(rawName) : String(rawName).replace(/</g, '&lt;'));
             navActions.innerHTML = `
                 <div class="d-flex align-items-center gap-2">
-                    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary);" class="d-none d-sm-inline">
+                    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" class="d-none d-sm-inline">
                         <i class="fa-solid fa-user-circle me-1"></i> ${safeName}
                     </span>
                     <a href="dashboard.html" class="btn btn-ghost btn-sm">

@@ -85,7 +85,7 @@
     fab.setAttribute('aria-label', 'Open BookBridge Chat');
     fab.title = 'Chat with Students (Buy · Sell · Exchange · Donate)';
     fab.innerHTML = `
-      <span class="bb-chat-fab-icon">💬</span>
+      <span class="bb-chat-fab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
       <span id="bbChatFabBadge" class="bb-chat-fab-badge" style="display: none;">0</span>
     `;
     fab.addEventListener('click', () => window.toggleChatDrawer());
@@ -124,7 +124,7 @@
       <!-- Active Deal Context Banner -->
       <div id="bbDealBanner" class="bb-deal-banner" style="display: none;">
         <div class="bb-deal-banner-top">
-          <img id="bbDealThumb" src="" alt="Book" class="bb-deal-cover-thumb">
+          <img id="bbDealThumb" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f1f5f9'/%3E%3Ctext x='50' y='55' font-size='20' text-anchor='middle' fill='%2394a3b8'%3E📚%3C/text%3E%3C/svg%3E" alt="Book" class="bb-deal-cover-thumb">
           <div class="bb-deal-info">
             <div id="bbDealTitle" class="bb-deal-title">Book Title</div>
             <div class="bb-deal-badge-row">

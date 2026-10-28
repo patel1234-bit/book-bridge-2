@@ -5,6 +5,7 @@
  * ==========================================================================
  */
 
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -289,16 +290,42 @@ app.post('/api/contact', async (req, res) => {
       // non-blocking
     }
 
-    // Try direct SMTP transmission via nodemailer if configured
+    // Try direct email transmission via Brevo API / Nodemailer if configured
     let mailResult = null;
     try {
       const mailEngine = require('./config/mail');
       if (mailEngine && mailEngine.isConfigured) {
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <div style="background: #3E6B3A; color: #ffffff; padding: 24px; text-align: center;">
+              <h2 style="margin: 0; font-size: 20px;">BookBridge Campus Marketplace</h2>
+              <p style="margin: 6px 0 0; font-size: 13px; opacity: 0.9;">New Student Contact Inquiry</p>
+            </div>
+            <div style="padding: 24px; background: #ffffff;">
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 120px;"><strong>Student Name:</strong></td><td style="padding: 8px 0; color: #0f172a; font-size: 14px; font-weight: bold;">${cleanName}</td></tr>
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;"><strong>Student Email:</strong></td><td style="padding: 8px 0; color: #0f172a; font-size: 14px;"><a href="mailto:${cleanEmail}">${cleanEmail}</a></td></tr>
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;"><strong>Subject:</strong></td><td style="padding: 8px 0; color: #0f172a; font-size: 14px;">${cleanSubject}</td></tr>
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;"><strong>Received:</strong></td><td style="padding: 8px 0; color: #0f172a; font-size: 13px;">${new Date().toLocaleString('en-IN')}</td></tr>
+              </table>
+              <div style="background: #f8fafc; border-left: 4px solid #3E6B3A; padding: 16px; border-radius: 6px; font-size: 14px; color: #1e293b; line-height: 1.6; white-space: pre-wrap;">${cleanMessage}</div>
+              <div style="margin-top: 24px; text-align: center;">
+                <a href="mailto:${cleanEmail}?subject=${encodeURIComponent('Re: ' + cleanSubject)}" style="background: #3E6B3A; color: #ffffff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Reply to ${cleanName}</a>
+              </div>
+            </div>
+            <div style="background: #f1f5f9; padding: 14px; text-align: center; font-size: 12px; color: #64748b;">
+              Delivered directly to bookbridgee@gmail.com via Brevo Transactional Email Engine
+            </div>
+          </div>
+        `;
+
         mailResult = await mailEngine.sendMail({
           to: mailEngine.TARGET_EMAIL,
           replyTo: cleanEmail,
+          replyToName: cleanName,
           subject: `[BookBridge ${cleanSubject}] Inquiry from ${cleanName}`,
-          text: `Student Name: ${cleanName}\nStudent Email: ${cleanEmail}\nCategory: ${cleanSubject}\nDate: ${new Date().toLocaleString('en-IN')}\n\nStudent Query:\n${cleanMessage}\n\n-- Sent via BookBridge Student Platform`
+          text: `Student Name: ${cleanName}\nStudent Email: ${cleanEmail}\nCategory: ${cleanSubject}\nDate: ${new Date().toLocaleString('en-IN')}\n\nStudent Query:\n${cleanMessage}\n\n-- Sent via BookBridge Student Platform`,
+          html
         });
       }
     } catch (mailErr) {
@@ -308,9 +335,11 @@ app.post('/api/contact', async (req, res) => {
     return res.status(200).json({
       status: 'ok',
       destination: 'bookbridgee@gmail.com',
-      sentViaSMTP: Boolean(mailResult?.sent),
+      sentViaEmail: Boolean(mailResult?.sent),
+      provider: mailResult?.provider || null,
+      messageId: mailResult?.messageId || null,
       message: mailResult?.sent
-        ? 'Inquiry emailed directly to bookbridgee@gmail.com via server SMTP!'
+        ? `Inquiry emailed directly to bookbridgee@gmail.com via ${mailResult.provider === 'brevo' ? 'Brevo' : 'SMTP'}!`
         : 'Inquiry received and addressed to bookbridgee@gmail.com'
     });
   } catch (err) {

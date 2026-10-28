@@ -52,17 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
         if not is_admin:
             for sensitive_field in ('role', 'is_staff', 'is_superuser', 'is_college_verified', 'is_2fa_enabled', 'is_active'):
                 attrs.pop(sensitive_field, None)
-        if 'full_name' in attrs and attrs['full_name']:
-            from django.utils.html import strip_tags
-            attrs['full_name'] = strip_tags(attrs['full_name']).strip()
         return attrs
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        from django.utils.html import strip_tags
-        if data.get('full_name'):
-            data['full_name'] = strip_tags(data['full_name']).strip() or 'Student'
-        return data
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):

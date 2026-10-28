@@ -1759,8 +1759,9 @@ async function renderDashboardMessages(user) {
         const colorVar = colorVars[email.length % colorVars.length];
         const safeBookTitle = lastMsg?.bookTitle ? escapeHTML(lastMsg.bookTitle) : '';
         const safeText = lastMsg?.text ? escapeHTML(lastMsg.text) : '';
+        const safeEmail = escapeHTML(email);
         return `
-          <div class="msg-thread-item ${thread.unread > 0 ? 'unread' : ''}">
+          <div class="msg-thread-item ${thread.unread > 0 ? 'unread' : ''}" style="cursor: pointer;" data-partner-email="${safeEmail}" data-partner-name="${safeName}">
             <div class="msg-avatar" style="background:var(--color-${colorVar});">${initials}</div>
             <div class="msg-thread-content">
               <div class="msg-thread-name">${safeName}</div>
@@ -1775,10 +1776,20 @@ async function renderDashboardMessages(user) {
       }).join('')}
     </div>
     <div class="msg-compose-bar">
-      <input type="text" id="newMsgInput" placeholder="Type a message to a seller...">
-      <button class="btn btn-primary btn-sm" onclick="showToast('Open a book card to send a message!', 'info')"><i class="fa-solid fa-paper-plane"></i></button>
+      <input type="text" id="newMsgInput" placeholder="Open BookBridgee Live Chat..." readonly style="cursor: pointer;" onclick="window.toggleChatDrawer ? window.toggleChatDrawer(true) : null">
+      <button class="btn btn-primary btn-sm" onclick="window.toggleChatDrawer ? window.toggleChatDrawer(true) : null" title="Open Live Chat"><i class="fa-solid fa-comments"></i></button>
     </div>
   `;
+
+  msgContainer.querySelectorAll('.msg-thread-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const pEmail = item.dataset.partnerEmail;
+      const pName = item.dataset.partnerName;
+      if (typeof window.openBookBridgeeChat === 'function') {
+        window.openBookBridgeeChat({ receiverEmail: pEmail, receiverName: pName });
+      }
+    });
+  });
 }
 
 /* ─── Dashboard: Notifications ─── */

@@ -43,6 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 6. Asynchronously Load Live Books from Backend Database / API for All Visitors
     loadLiveBooksFromAPI();
+
+    // 7. Subscribe to Real-Time Catalog Updates (new listings, updates, removals)
+    initCatalogRealtime();
 });
 
 function syncBrowseNavUser() {
@@ -191,6 +194,118 @@ function initQuickChips() {
 }
 
 /**
+ * Normalize raw API / SQLite book data into standard Browse catalog book schema
+ */
+function normalizeApiBook(ab) {
+    if (!ab || !ab.id) return null;
+    const isFree = ab.mode === "donate" || ab.type === "Donate" || Number(ab.price) === 0;
+    const isExchange = ab.mode === "exchange" || ab.type === "Exchange";
+
+    const defaultCover = "browse_images/books/book" + (((Number(ab.id || 1) - 1) % 25) + 1) + ".jpg";
+    const rawCover = ab.coverUrl || ab.cover || ab.image || ab.cover_url;
+    const bookCover = (rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : defaultCover;
+
+    const sellerData = ab.seller || (ab.seller_details ? {
+        id: ab.seller_details.id || ab.sellerId,
+        name: ab.seller_details.full_name || ab.seller_name || "Student Seller",
+        email: ab.seller_details.email || "student@rcti.ac.in",
+        avatarUrl: ab.seller_details.avatarUrl || ''
+    } : {
+        id: ab.sellerId || (ab.seller && ab.seller.id),
+        name: ab.seller_name || (ab.seller && ab.seller.name) || "Student Seller",
+        email: ab.sellerEmail || "student@rcti.ac.in",
+        avatarUrl: ab.seller ? ab.seller.avatarUrl : ''
+    });
+
+    return {
+        id: ab.id,
+        sellerId: ab.sellerId || (ab.seller && ab.seller.id),
+        title: ab.title || "Untitled Book",
+        author: ab.author || "Student Contributor",
+        department: ab.branch || ab.department || "Computer Engineering",
+        semester: Number(ab.semester) || 1,
+        category: ab.genre || ab.category || ab.subject || "Programming",
+        condition: ab.condition || "Good",
+        price: isFree ? 0 : Number(ab.price || 0),
+        type: isFree ? "Donate" : (isExchange ? "Exchange" : "Sell"),
+        image: bookCover,
+        cover: bookCover,
+        seller: sellerData,
+        description: ab.description || "",
+        location: ab.location || "Campus Central Library",
+        isUserListed: true
+    };
+}
+
+/**
+ * Real-time event handlers for live book changes
+ */
+function handleLiveNewBook(ab) {
+    const normalized = normalizeApiBook(ab);
+    if (!normalized) return;
+    const existingIdx = books.findIndex(b => String(b.id) === String(normalized.id));
+    if (existingIdx >= 0) {
+        books[existingIdx] = { ...books[existingIdx], ...normalized };
+    } else {
+        books.unshift(normalized);
+        if (typeof incrementLiveStat === 'function') {
+            incrementLiveStat('books', 1);
+        }
+        if (typeof showToast === 'function') {
+            showToast(`📚 New book listed: "${normalized.title}"!`, 'info');
+        }
+    }
+    if (typeof applyFilters === 'function') {
+        applyFilters();
+    } else if (typeof renderBooks === 'function') {
+        renderBooks(books);
+    }
+}
+
+function handleLiveBookUpdated(ab) {
+    const normalized = normalizeApiBook(ab);
+    if (!normalized) return;
+    const existingIdx = books.findIndex(b => String(b.id) === String(normalized.id));
+    if (existingIdx >= 0) {
+        books[existingIdx] = { ...books[existingIdx], ...normalized };
+        if (typeof applyFilters === 'function') {
+            applyFilters();
+        } else if (typeof renderBooks === 'function') {
+            renderBooks(books);
+        }
+    }
+}
+
+function handleLiveBookDeleted(delId) {
+    const idx = books.findIndex(b => String(b.id) === String(delId));
+    if (idx >= 0) {
+        books.splice(idx, 1);
+        if (typeof applyFilters === 'function') {
+            applyFilters();
+        } else if (typeof renderBooks === 'function') {
+            renderBooks(books);
+        }
+    }
+}
+
+function initCatalogRealtime() {
+    function attach(sock) {
+        if (!sock || sock.__bbCatalogAttached) return;
+        sock.__bbCatalogAttached = true;
+        sock.on('newBook', (data) => handleLiveNewBook(data));
+        sock.on('bookUpdated', (data) => handleLiveBookUpdated(data));
+        sock.on('bookDeleted', (data) => handleLiveBookDeleted(data?.id));
+    }
+
+    if (window.__bbChatSocket) {
+        attach(window.__bbChatSocket);
+    }
+    window.addEventListener('bookbridge:socket-ready', (e) => {
+        if (e.detail?.socket) attach(e.detail.socket);
+    });
+}
+
+/**
  * Load Live Books from API (/api/books/) and Local Storage
  * Ensures ANY visitor properly sees books listed by real students
  */
@@ -218,47 +333,14 @@ async function loadLiveBooksFromAPI() {
         if (Array.isArray(apiBooks) && apiBooks.length > 0) {
             let addedCount = 0;
             apiBooks.forEach((ab) => {
-                if (!ab || !ab.id) return;
-                const existingIdx = books.findIndex(b => String(b.id) === String(ab.id));
-
-                const isFree = ab.mode === "donate" || ab.type === "Donate" || Number(ab.price) === 0;
-                const isExchange = ab.mode === "exchange" || ab.type === "Exchange";
-
-                const defaultCover = "browse_images/books/book" + (((Number(ab.id || 1) - 1) % 25) + 1) + ".jpg";
-                const rawCover = ab.coverUrl || ab.cover || ab.image || ab.cover_url;
-                const bookCover = (rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : defaultCover;
-
-                const sellerData = ab.seller || (ab.seller_details ? {
-                    name: ab.seller_details.full_name || ab.seller_name || "Student Seller",
-                    email: ab.seller_details.email || "student@rcti.ac.in",
-                    whatsapp: ab.seller_details.whatsapp || ""
-                } : {
-                    name: ab.seller_name || "Student Seller",
-                    email: "student@rcti.ac.in",
-                    whatsapp: ""
-                });
-
-                const normalized = {
-                    id: ab.id,
-                    title: ab.title || "Untitled Book",
-                    author: ab.author || "Student Contributor",
-                    department: ab.branch || ab.department || "Computer Engineering",
-                    semester: Number(ab.semester) || 1,
-                    category: ab.genre || ab.category || ab.subject || "Programming",
-                    condition: ab.condition || "Good",
-                    price: isFree ? 0 : Number(ab.price || 0),
-                    type: isFree ? "Donate" : (isExchange ? "Exchange" : "Sell"),
-                    image: bookCover,
-                    cover: bookCover,
-                    seller: sellerData,
-                    description: ab.description || "",
-                    location: ab.location || "Campus Central Library",
-                    isUserListed: true
-                };
+                const normalized = normalizeApiBook(ab);
+                if (!normalized) return;
+                const existingIdx = books.findIndex(b => String(b.id) === String(normalized.id));
 
                 if (existingIdx >= 0) {
                     const prevImage = books[existingIdx].image || books[existingIdx].cover;
-                    const resolvedCover = (bookCover && bookCover !== window.DEFAULT_BOOK_COVER) ? bookCover : (prevImage || defaultCover);
+                    const defaultCover = "browse_images/books/book" + (((Number(normalized.id || 1) - 1) % 25) + 1) + ".jpg";
+                    const resolvedCover = (normalized.cover && normalized.cover !== window.DEFAULT_BOOK_COVER) ? normalized.cover : (prevImage || defaultCover);
                     normalized.image = resolvedCover;
                     normalized.cover = resolvedCover;
                     books[existingIdx] = { ...books[existingIdx], ...normalized };

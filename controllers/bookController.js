@@ -60,6 +60,13 @@ exports.getBooks = async (req, res, next) => {
 
     const books = await Book.findAll({
       where,
+      include: [
+        {
+          model: User,
+          as: 'seller',
+          attributes: ['id', 'name', 'email', 'role', 'branch', 'semester', 'avatarUrl']
+        }
+      ],
       order: [['createdAt', 'DESC']]
     });
 
@@ -68,8 +75,10 @@ exports.getBooks = async (req, res, next) => {
       const b = book.toJSON ? book.toJSON() : { ...book };
       // WhatsApp numbers are never exposed in listings; use the consent-based chat flow
       delete b.sellerWhatsapp;
+      if (b.seller) delete b.seller.whatsapp;
       if (isGuest) {
         delete b.sellerEmail;
+        if (b.seller) delete b.seller.email;
       }
       return b;
     });
@@ -150,12 +159,17 @@ exports.createBook = async (req, res, next, io) => {
       pdfUrl
     } = req.body;
 
+    const resolvedCoverUrl = coverUrl || req.body.cover || req.body.image || req.body.cover_url || '';
+    const resolvedExchangeFor = exchangeFor || req.body.exchange_for || '';
+    const resolvedGtuCode = gtuCode || req.body.gtu_code || '';
+    const resolvedResourceType = resourceType || req.body.resource_type || 'textbook';
+
     const newBook = await Book.create({
       title: title.trim(),
       author: author.trim(),
-      gtuCode: gtuCode ? gtuCode.trim() : '',
+      gtuCode: resolvedGtuCode ? resolvedGtuCode.trim() : '',
       category: category || 'physical',
-      resourceType: resourceType || 'textbook',
+      resourceType: resolvedResourceType || 'textbook',
       genre: genre || 'Computer Engineering',
       subject: subject || 'General',
       semester: semester ? parseInt(semester, 10) : 1,
@@ -164,9 +178,9 @@ exports.createBook = async (req, res, next, io) => {
       condition: condition || 'Good',
       mode: (mode || 'sell').toLowerCase(),
       price: (mode && mode.toLowerCase() === 'donate') ? 0.00 : (parseFloat(price) || 0.00),
-      exchangeFor: exchangeFor ? exchangeFor.trim() : '',
+      exchangeFor: resolvedExchangeFor ? resolvedExchangeFor.trim() : '',
       description: description ? description.trim() : '',
-      coverUrl: coverUrl || '',
+      coverUrl: resolvedCoverUrl || '',
       pdfUrl: pdfUrl || '',
       status: 'Available',
       sellerId: seller ? seller.id : null,
@@ -176,9 +190,23 @@ exports.createBook = async (req, res, next, io) => {
       sellerWhatsapp: seller ? (seller.whatsapp || '') : ''
     });
 
+    let bookWithSeller = newBook;
+    try {
+      const fetched = await Book.findByPk(newBook.id, {
+        include: [
+          {
+            model: User,
+            as: 'seller',
+            attributes: ['id', 'name', 'email', 'role', 'branch', 'semester', 'avatarUrl']
+          }
+        ]
+      });
+      if (fetched) bookWithSeller = fetched;
+    } catch (e) {}
+
     // Real-time broadcast to all connected clients (sanitize private seller details)
     if (io) {
-      const broadcastBook = newBook.toJSON ? newBook.toJSON() : { ...newBook };
+      const broadcastBook = bookWithSeller.toJSON ? bookWithSeller.toJSON() : { ...bookWithSeller };
       delete broadcastBook.sellerWhatsapp;
       delete broadcastBook.sellerEmail;
       if (broadcastBook.seller) {
@@ -188,7 +216,11 @@ exports.createBook = async (req, res, next, io) => {
       io.emit('newBook', broadcastBook);
     }
 
-    return res.status(201).json(newBook);
+    const responseBook = bookWithSeller.toJSON ? bookWithSeller.toJSON() : { ...bookWithSeller };
+    delete responseBook.sellerWhatsapp;
+    if (responseBook.seller) delete responseBook.seller.whatsapp;
+
+    return res.status(201).json(responseBook);
   } catch (error) {
     next(error);
   }
@@ -223,14 +255,35 @@ exports.updateBook = async (req, res, next, io) => {
       }
     });
 
+    if (req.body.cover !== undefined) book.coverUrl = req.body.cover;
+    if (req.body.image !== undefined) book.coverUrl = req.body.image;
+    if (req.body.cover_url !== undefined) book.coverUrl = req.body.cover_url;
+    if (req.body.exchange_for !== undefined) book.exchangeFor = req.body.exchange_for;
+    if (req.body.gtu_code !== undefined) book.gtuCode = req.body.gtu_code;
+    if (req.body.resource_type !== undefined) book.resourceType = req.body.resource_type;
+
     if (req.body.price !== undefined) {
       book.price = parseFloat(req.body.price) || 0;
     }
 
     await book.save();
 
+    let updatedWithSeller = book;
+    try {
+      const fetched = await Book.findByPk(book.id, {
+        include: [
+          {
+            model: User,
+            as: 'seller',
+            attributes: ['id', 'name', 'email', 'role', 'branch', 'semester', 'avatarUrl']
+          }
+        ]
+      });
+      if (fetched) updatedWithSeller = fetched;
+    } catch (e) {}
+
     if (io) {
-      const broadcastBook = book.toJSON ? book.toJSON() : { ...book };
+      const broadcastBook = updatedWithSeller.toJSON ? updatedWithSeller.toJSON() : { ...updatedWithSeller };
       delete broadcastBook.sellerWhatsapp;
       delete broadcastBook.sellerEmail;
       if (broadcastBook.seller) {
@@ -240,7 +293,11 @@ exports.updateBook = async (req, res, next, io) => {
       io.emit('bookUpdated', broadcastBook);
     }
 
-    return res.json(book);
+    const responseBook = updatedWithSeller.toJSON ? updatedWithSeller.toJSON() : { ...updatedWithSeller };
+    delete responseBook.sellerWhatsapp;
+    if (responseBook.seller) delete responseBook.seller.whatsapp;
+
+    return res.json(responseBook);
   } catch (error) {
     next(error);
   }

@@ -1241,21 +1241,30 @@
   function initRealtimeSocket() {
     try {
       const token = localStorage.getItem('bb_access_token');
-      if (!token) return;
-      if (window.__bbChatSocket && window.__bbChatSocket.connected) return;
+      // If already connected with proper token, no need to reconnect
+      if (window.__bbChatSocket && window.__bbChatSocket.connected) {
+        if (token && !window.__bbChatSocket.__authed) {
+          try { window.__bbChatSocket.disconnect(); } catch (e) {}
+        } else {
+          return;
+        }
+      }
 
       const connect = () => {
         if (typeof window.io !== 'function') return;
         if (window.__bbChatSocket) {
           try { window.__bbChatSocket.disconnect(); } catch (e) {}
         }
-        const sock = window.io({ auth: { token }, transports: ['websocket', 'polling'] });
+        const auth = token ? { token } : {};
+        const sock = window.io({ auth, transports: ['websocket', 'polling'] });
+        sock.__authed = Boolean(token);
         window.__bbChatSocket = sock;
 
         sock.on('connect', () => {
-          if (activePartner && activePartner.conversationId) {
+          if (activePartner && activePartner.conversationId && sock.__authed) {
             sock.emit('joinConversation', activePartner.conversationId);
           }
+          window.dispatchEvent(new CustomEvent('bookbridge:socket-ready', { detail: { socket: sock } }));
         });
 
         const onIncoming = (msg) => {
@@ -1297,6 +1306,8 @@
             }
           }
         });
+
+        window.dispatchEvent(new CustomEvent('bookbridge:socket-ready', { detail: { socket: sock } }));
       };
 
       if (typeof window.io === 'function') return connect();

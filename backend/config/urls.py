@@ -13,13 +13,19 @@ from config.page_views import serve_html_page, statistics_api
 from apps.users.views import (
     RegisterView, CustomLoginView, UserListView, UserAdminDetailView,
     AdminStatsView, UserProfileView, LogoutView,
-    ForgotPasswordRequestView, ResetPasswordConfirmView
+    ForgotPasswordRequestView, ResetPasswordConfirmView,
+    CurrentUserView, UserRoleUpdateView, UserStatusUpdateView, VerifyResetTokenView
 )
 from apps.admin_portal.views import AdminOverviewView, AdminAnalyticsView, AdminSystemHealthView, AdminBroadcastNotificationView, AdminReportExportView
 from apps.books.views import BookListCreateView, BookDetailView, WishlistListView, WishlistToggleView, StatisticsAPIView
 from apps.exchange.views import ExchangeProposalListCreateView, ExchangeProposalDetailView
 from apps.donations.views import DonationClaimListCreateView, DonationClaimDetailView
-from apps.chat.views import ChatMessageListCreateView, ChatInboxView
+from apps.chat.views import (
+    ChatMessageListCreateView, ChatInboxView,
+    ConversationListView, ConversationMessagesView,
+    ConversationWhatsAppView, ConversationWhatsAppApproveView,
+    ConversationReportView, ConversationBlockView
+)
 from apps.payments.views import (
     CreatePaymentIntentView, WalletBalanceView, VerifyPaymentView,
     RazorpayWebhookView, CancelOrReleasePaymentView, BuyerOrdersListView,
@@ -183,6 +189,12 @@ urlpatterns = [
     path('api/token/refresh', TokenRefreshView.as_view()),
     path('api/profile', UserProfileView.as_view(), name='api-profile'),
     path('api/profile/', UserProfileView.as_view()),
+    path('api/auth/me', CurrentUserView.as_view(), name='api-auth-me'),
+    path('api/auth/me/', CurrentUserView.as_view()),
+    path('api/users/profile', UserProfileView.as_view(), name='api-users-profile'),
+    path('api/users/profile/', UserProfileView.as_view()),
+    path('api/auth/verify-reset-token/<str:token>', VerifyResetTokenView.as_view(), name='api-verify-reset-token'),
+    path('api/auth/verify-reset-token/<str:token>/', VerifyResetTokenView.as_view()),
     path('api/books', BookListCreateView.as_view(), name='api-books'),
     path('api/books/', BookListCreateView.as_view()),
     path('api/books/<int:pk>/', BookDetailView.as_view(), name='api-book-detail'),
@@ -195,6 +207,10 @@ urlpatterns = [
     path('api/admin/users/', UserListView.as_view()),
     path('api/admin/users/<str:pk>/', UserAdminDetailView.as_view(), name='api-admin-user-detail'),
     path('api/admin/users/<str:pk>', UserAdminDetailView.as_view()),
+    path('api/admin/users/<str:pk>/role', UserRoleUpdateView.as_view(), name='api-admin-user-role'),
+    path('api/admin/users/<str:pk>/role/', UserRoleUpdateView.as_view()),
+    path('api/admin/users/<str:pk>/status', UserStatusUpdateView.as_view(), name='api-admin-user-status'),
+    path('api/admin/users/<str:pk>/status/', UserStatusUpdateView.as_view()),
     path('api/admin/overview', AdminOverviewView.as_view(), name='api-admin-overview'),
     path('api/admin/overview/', AdminOverviewView.as_view()),
     path('api/admin/analytics', AdminAnalyticsView.as_view(), name='api-admin-analytics'),
@@ -215,6 +231,18 @@ urlpatterns = [
     path('api/donations/<int:pk>/', DonationClaimDetailView.as_view(), name='api-donation-detail'),
     path('api/messages', ChatMessageListCreateView.as_view(), name='api-messages'),
     path('api/messages/', ChatMessageListCreateView.as_view()),
+    path('api/conversations', ConversationListView.as_view(), name='api-conversations'),
+    path('api/conversations/', ConversationListView.as_view()),
+    path('api/conversations/<str:conversation_id>/messages', ConversationMessagesView.as_view(), name='api-conversation-messages'),
+    path('api/conversations/<str:conversation_id>/messages/', ConversationMessagesView.as_view()),
+    path('api/conversations/<str:conversation_id>/whatsapp', ConversationWhatsAppView.as_view(), name='api-conversation-whatsapp'),
+    path('api/conversations/<str:conversation_id>/whatsapp/', ConversationWhatsAppView.as_view()),
+    path('api/conversations/<str:conversation_id>/whatsapp/approve', ConversationWhatsAppApproveView.as_view(), name='api-conversation-whatsapp-approve'),
+    path('api/conversations/<str:conversation_id>/whatsapp/approve/', ConversationWhatsAppApproveView.as_view()),
+    path('api/conversations/<str:conversation_id>/report', ConversationReportView.as_view(), name='api-conversation-report'),
+    path('api/conversations/<str:conversation_id>/report/', ConversationReportView.as_view()),
+    path('api/conversations/<str:conversation_id>/block', ConversationBlockView.as_view(), name='api-conversation-block'),
+    path('api/conversations/<str:conversation_id>/block/', ConversationBlockView.as_view()),
     path('api/wishlist', WishlistListView.as_view(), name='api-wishlist'),
     path('api/wishlist/', WishlistListView.as_view()),
     path('api/wishlist/toggle', WishlistToggleView.as_view(), name='api-wishlist-toggle'),

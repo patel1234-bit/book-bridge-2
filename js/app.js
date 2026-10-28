@@ -1,3 +1,18 @@
+function _safeAppPlaceholderCover(b) {
+  let idx = 1;
+  if (b && b.id != null) {
+    const num = parseInt(b.id, 10);
+    if (!isNaN(num) && num > 0) {
+      idx = ((num - 1) % 25) + 1;
+    } else {
+      let hash = 0, str = String(b.id);
+      for (let i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
+      idx = (Math.abs(hash) % 25) + 1;
+    }
+  }
+  return 'browse_images/books/book' + idx + '.jpg';
+}
+
 /**
  * ==========================================================================
  * BOOKBRIDGE PREMIUM APPLICATION CONTROLLER
@@ -413,9 +428,9 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
     const sellerNameEscaped = escapeHTML(rawSellerName);
     const initials = escapeHTML(rawSellerName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase());
     const isDonation = b.price === 0 || b.mode === 'donate';
-    const fallbackCover = 'browse_images/books/book' + (((Number(b.id || 1) - 1) % 25) + 1) + '.jpg';
+    const fallbackCover = _safeAppPlaceholderCover(b);
     const rawCover = b.coverUrl || b.cover || b.image || b.cover_url;
-    const coverImg = sanitizeUrl((rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : fallbackCover, fallbackCover);
+    const coverImg = sanitizeUrl((rawCover && rawCover !== window.DEFAULT_BOOK_COVER && typeof rawCover === 'string' && rawCover.trim()) ? rawCover : fallbackCover, fallbackCover);
     const isDigital = b.category === 'digital' && b.pdfUrl;
     const waNumber = ''; // numbers are never exposed in the UI; contact goes through the consent-based chat
     const waMsg = encodeURIComponent(`Hi ${rawSellerName}, I found your book "${b.title || 'book'}" on BookBridge! Is it still available?`);
@@ -1665,9 +1680,9 @@ async function initDashboardPage() {
         const safeBranch = escapeHTML(b.branch || 'CE');
         const safeMode = escapeHTML((b.mode || 'sell').toUpperCase());
         const safeStatus = escapeHTML(b.status || 'Available');
-        const fallbackCover = 'browse_images/books/book' + (((Number(b.id || 1) - 1) % 25) + 1) + '.jpg';
+        const fallbackCover = _safeAppPlaceholderCover(b);
         const rawCover = b.coverUrl || b.cover || b.image || b.cover_url;
-        const safeCover = sanitizeUrl((rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : fallbackCover, fallbackCover);
+        const safeCover = sanitizeUrl((rawCover && rawCover !== window.DEFAULT_BOOK_COVER && typeof rawCover === 'string' && rawCover.trim()) ? rawCover : fallbackCover, fallbackCover);
         const safeId = encodeURIComponent(String(b.id || ''));
         return `
           <div class="book-card">

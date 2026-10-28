@@ -456,4 +456,59 @@ class ResetPasswordConfirmView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class CurrentUserView(APIView):
+    """
+    GET /api/auth/me or /api/auth/me/
+    Returns authenticated user's ID, email, name, role, and profile details.
+    Returns 401 Unauthorized if unauthenticated.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserRoleUpdateView(APIView):
+    """Admin endpoint: PUT /api/admin/users/<pk>/role"""
+    permission_classes = [permissions.IsAuthenticated, IsBookBridgeeAdmin]
+
+    def put(self, request, pk):
+        try:
+            target = User.objects.get(pk=pk)
+        except (User.DoesNotExist, ValueError):
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        role = request.data.get('role')
+        if not role:
+            return Response({'error': 'Role is required'}, status=status.HTTP_400_BAD_REQUEST)
+        target.role = str(role).lower()
+        target.save(update_fields=['role'])
+        return Response({'success': True, 'user': UserSerializer(target).data}, status=status.HTTP_200_OK)
+
+
+class UserStatusUpdateView(APIView):
+    """Admin endpoint: PUT /api/admin/users/<pk>/status"""
+    permission_classes = [permissions.IsAuthenticated, IsBookBridgeeAdmin]
+
+    def put(self, request, pk):
+        try:
+            target = User.objects.get(pk=pk)
+        except (User.DoesNotExist, ValueError):
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        is_active = request.data.get('isActive')
+        if is_active is None:
+            is_active = request.data.get('is_active')
+        if is_active is None:
+            return Response({'error': 'isActive flag is required'}, status=status.HTTP_400_BAD_REQUEST)
+        target.is_active = bool(is_active)
+        target.save(update_fields=['is_active'])
+        return Response({'success': True, 'user': UserSerializer(target).data}, status=status.HTTP_200_OK)
+
+
+class VerifyResetTokenView(APIView):
+    """GET /api/auth/verify-reset-token/<token>"""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, token):
+        return Response({'valid': True, 'token': token}, status=status.HTTP_200_OK)
 

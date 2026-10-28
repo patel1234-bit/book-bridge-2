@@ -9,8 +9,27 @@ const API_BASE = '/api';
 
 // ── Token helpers ──────────────────────────────────────────────────────────
 
+function _isTokenExpired(token) {
+  if (!token || typeof token !== 'string') return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch (e) {
+    return true;
+  }
+}
+
 function _getToken() {
-  return localStorage.getItem('bb_access_token') || null;
+  const token = localStorage.getItem('bb_access_token');
+  if (!token) return null;
+  if (_isTokenExpired(token)) {
+    localStorage.removeItem('bb_access_token');
+    return null;
+  }
+  return token;
 }
 
 function _setTokens(access, refresh) {
@@ -23,6 +42,18 @@ function _clearTokens() {
   localStorage.removeItem('bb_refresh_token');
   localStorage.removeItem('rcti_gtu_current_user');
   localStorage.removeItem('admin_mode');
+}
+
+function _handleUnauthorized() {
+  _clearTokens();
+  try {
+    const currentPath = (window.location.pathname || '').toLowerCase();
+    const isProtectedPage = currentPath.includes('dashboard') || currentPath.includes('sell') || currentPath.includes('admin');
+    if (isProtectedPage && !currentPath.includes('login') && !window._redirectingToLogin) {
+      window._redirectingToLogin = true;
+      window.location.href = `login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    }
+  } catch (e) {}
 }
 
 function _authHeaders(extra = {}) {

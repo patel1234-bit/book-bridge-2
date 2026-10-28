@@ -224,7 +224,13 @@ async function loadLiveBooksFromAPI() {
                 const isFree = ab.mode === "donate" || ab.type === "Donate" || Number(ab.price) === 0;
                 const isExchange = ab.mode === "exchange" || ab.type === "Exchange";
 
-                const defaultCover = "browse_images/books/book" + (((Number(ab.id || 1) - 1) % 25) + 1) + ".jpg";
+                let _cIdx = 1;
+                if (ab.id != null) {
+                    const _p = parseInt(ab.id, 10);
+                    if (!isNaN(_p) && _p > 0) { _cIdx = ((_p - 1) % 25) + 1; }
+                    else { let _h = 0, _s = String(ab.id); for (let i = 0; i < _s.length; i++) { _h = ((_h << 5) - _h) + _s.charCodeAt(i); _h |= 0; } _cIdx = (Math.abs(_h) % 25) + 1; }
+                }
+                const defaultCover = "browse_images/books/book" + _cIdx + ".jpg";
                 const rawCover = ab.coverUrl || ab.cover || ab.image || ab.cover_url;
                 const bookCover = (rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : defaultCover;
 

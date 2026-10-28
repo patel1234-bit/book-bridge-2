@@ -414,6 +414,8 @@ if (PROJECT_ROOT / 'css').exists():
     STATICFILES_DIRS.append(('css', PROJECT_ROOT / 'css'))
 if (PROJECT_ROOT / 'browse_images').exists():
     STATICFILES_DIRS.append(('browse_images', PROJECT_ROOT / 'browse_images'))
+if (PROJECT_ROOT / 'browse_js').exists():
+    STATICFILES_DIRS.append(('browse_js', PROJECT_ROOT / 'browse_js'))
 
 # Root files for direct WhiteNoise serving (e.g. style.css, favicon, logo)
 WHITENOISE_ROOT = PROJECT_ROOT
@@ -477,7 +479,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ---------------------------------------------------------------------------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'apps.core.authentication.SafeJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
@@ -569,6 +571,8 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'

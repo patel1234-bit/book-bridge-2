@@ -1,3 +1,18 @@
+function _safePlaceholderCover(b) {
+    let idx = 1;
+    if (b && b.id != null) {
+        const num = parseInt(b.id, 10);
+        if (!isNaN(num) && num > 0) {
+            idx = ((num - 1) % 25) + 1;
+        } else {
+            let hash = 0, str = String(b.id);
+            for (let i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
+            idx = (Math.abs(hash) % 25) + 1;
+        }
+    }
+    return `browse_images/books/book${idx}.jpg`;
+}
+
 /* ==========================================
    BookBridgee - Browse Books Render
 ========================================== */
@@ -68,9 +83,9 @@ function renderBooks(bookList = books) {
         const actionIcon = isFree ? "bi-gift-fill" : (isExchange ? "bi-arrow-left-right" : "bi-cart-check-fill");
         const actionTitle = isFree ? "Claim Free Book" : (isExchange ? "Swap / Exchange Book" : "Buy Book & Contact Seller");
 
-        const fallbackCover = `browse_images/books/book${((Number(book.id || 1) - 1) % 25) + 1}.jpg`;
+        const fallbackCover = _safePlaceholderCover(book);
         const rawCover = book.coverUrl || book.image || book.cover;
-        const bookImg = (rawCover && rawCover !== DEFAULT_BOOK_COVER) ? rawCover : fallbackCover;
+        const bookImg = (rawCover && rawCover !== DEFAULT_BOOK_COVER && typeof rawCover === 'string' && rawCover.trim()) ? rawCover : fallbackCover;
 
         // Create Book Card
         const bookCard = `
@@ -222,9 +237,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const modalImg = document.getElementById("modalBookImage");
             if (modalImg) {
-                const fallbackModalCover = `browse_images/books/book${((Number(book.id || 1) - 1) % 25) + 1}.jpg`;
+                const fallbackModalCover = _safePlaceholderCover(book);
                 const rawCover = book.coverUrl || book.image || book.cover;
-                const src = (rawCover && rawCover !== DEFAULT_BOOK_COVER) ? rawCover : fallbackModalCover;
+                const src = (rawCover && rawCover !== DEFAULT_BOOK_COVER && typeof rawCover === 'string' && rawCover.trim()) ? rawCover : fallbackModalCover;
                 modalImg.src = src;
                 modalImg.onerror = function() { this.onerror = null; this.src = fallbackModalCover; };
                 modalImg.alt = book.title || 'Book Image';

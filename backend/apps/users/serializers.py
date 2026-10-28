@@ -8,10 +8,11 @@ class PublicUserSerializer(serializers.ModelSerializer):
     """Safe public representation of a user without sensitive private fields."""
     college_name = serializers.CharField(source='college.name', read_only=True, default='')
     department_name = serializers.CharField(source='department.name', read_only=True, default='')
+    name = serializers.CharField(source='full_name', read_only=True, default='')
 
     class Meta:
         model = User
-        fields = ('id', 'full_name', 'college_name', 'department_name', 'role', 'avatar_url', 'is_college_verified')
+        fields = ('id', 'name', 'full_name', 'college_name', 'department_name', 'role', 'avatar_url', 'is_college_verified')
         read_only_fields = fields
 
     def to_representation(self, instance):
@@ -26,18 +27,19 @@ class UserSerializer(serializers.ModelSerializer):
     """Full user profile representation for authenticated owners and staff/admins."""
     college_name = serializers.CharField(source='college.name', read_only=True, default='')
     department_name = serializers.CharField(source='department.name', read_only=True, default='')
+    name = serializers.CharField(source='full_name', read_only=True, default='')
 
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'full_name', 'phone_number',
+            'id', 'email', 'name', 'full_name', 'phone_number',
             'college', 'college_name', 'department', 'department_name',
             'enrollment_number', 'semester',
             'role', 'avatar_url', 'is_college_verified', 'is_2fa_enabled',
             'date_joined', 'is_active', 'is_staff', 'is_superuser'
         )
         read_only_fields = (
-            'id', 'email', 'role', 'is_staff', 'is_superuser',
+            'id', 'email', 'name', 'role', 'is_staff', 'is_superuser',
             'is_college_verified', 'is_2fa_enabled', 'date_joined', 'is_active'
         )
 
@@ -150,11 +152,12 @@ class UserAdminSerializer(serializers.ModelSerializer):
     """Admin-facing user serializer for listing and updating user accounts."""
     college_name = serializers.CharField(source='college.name', read_only=True, default='')
     department_name = serializers.CharField(source='department.name', read_only=True, default='')
+    name = serializers.CharField(source='full_name', read_only=True, default='')
 
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'full_name', 'phone_number',
+            'id', 'email', 'name', 'full_name', 'phone_number',
             'college', 'college_name', 'department', 'department_name',
             'enrollment_number', 'semester',
             'role', 'avatar_url', 'is_college_verified', 'is_2fa_enabled',

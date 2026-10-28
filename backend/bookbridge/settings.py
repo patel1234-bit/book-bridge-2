@@ -1,5 +1,5 @@
 """
-Django settings for BookBridge project.
+Django settings for BookBridgee project.
 Generated for production-ready enterprise AI architecture.
 """
 
@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'channels',
 
-    # BookBridge Local Apps
+    # BookBridgee Local Apps
     'apps.core',
     'apps.users',
     'apps.books',
@@ -195,8 +195,8 @@ SIMPLE_JWT = {
 
 # OpenAPI / Swagger Settings
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'BookBridge Enterprise AI API',
-    'DESCRIPTION': 'API endpoints for BookBridge student book sharing platform and AI microservices.',
+    'TITLE': 'BookBridgee Enterprise AI API',
+    'DESCRIPTION': 'API endpoints for BookBridgee student book sharing platform and AI microservices.',
     'VERSION': '2.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }

@@ -146,7 +146,7 @@ class CreatePaymentIntentView(APIView):
                             'details': err
                         }, status=status.HTTP_502_BAD_GATEWAY)
 
-                    # Create BookBridge Order
+                    # Create BookBridgee Order
                     order = Order.objects.create(
                         order_number=order_number,
                         book=book,
@@ -320,7 +320,7 @@ class VerifyPaymentView(APIView):
                         order = Order.objects.select_for_update().get(razorpay_order_id=razorpay_order_id)
                     except Order.DoesNotExist:
                         return Response({
-                            'error': 'No corresponding BookBridge order found for this payment.'
+                            'error': 'No corresponding BookBridgee order found for this payment.'
                         }, status=status.HTTP_404_NOT_FOUND)
 
                 # Ensure order belongs to current user (unless staff)

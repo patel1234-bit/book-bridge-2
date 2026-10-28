@@ -1,7 +1,7 @@
 {
   "name": "bookbridge",
   "version": "2.0.0",
-  "description": "BookBridge — Student Book Sharing Platform (Express/Node.js + MySQL/Sequelize)",
+  "description": "BookBridgee — Student Book Sharing Platform (Express/Node.js + MySQL/Sequelize)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

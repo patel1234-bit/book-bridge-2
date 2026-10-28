@@ -622,6 +622,7 @@ p,
   box-shadow: var(--shadow-glass);
   border-radius: var(--radius-pill);
   transition: all var(--tr-normal);
+  display: block;
 }
 
 .navbar.scrolled {
@@ -732,6 +733,52 @@ p,
   height: 40px;
   padding: 0 18px;
   font-size: var(--text-small);
+}
+
+.nav-actions .nav-user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.nav-actions #btnNavLogout,
+.nav-actions #btnBrowseLogout,
+.nav-actions .btn-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-btn);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: var(--color-danger);
+  background: rgba(244, 63, 94, 0.08);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1;
+  vertical-align: middle;
+  transition: all var(--tr-fast);
+}
+
+.nav-actions #btnNavLogout:hover,
+.nav-actions #btnBrowseLogout:hover,
+.nav-actions .btn-logout:hover {
+  background: var(--color-danger);
+  color: #ffffff;
+  border-color: var(--color-danger);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.25);
 }
 
 /* Mobile toggle */
@@ -3226,7 +3273,7 @@ textarea.form-input~.form-label {
   box-shadow: 0 4px 12px rgba(62, 107, 58, 0.25);
 }
 
-/* Why Choose BookBridge Feature Cards */
+/* Why Choose BookBridgee Feature Cards */
 .feature-card {
   background: var(--color-white);
   border-radius: var(--radius);
@@ -4527,4 +4574,4 @@ textarea.form-input~.form-label {
   align-items: center;
   gap: 8px;
 }
-
+

@@ -1,8 +1,8 @@
-# 📚 BookBridge 2.0
+# 📚 BookBridgee 2.0
 
 > **Bridge Books. Build Minds.** — India's student academic book-sharing platform.
 
-BookBridge allows college and university students to **buy, sell, exchange, and donate** academic textbooks across all engineering and diploma departments (CE, IT, ICT, Mechanical, Electrical, Civil, and Science).
+BookBridgee allows college and university students to **buy, sell, exchange, and donate** academic textbooks across all engineering and diploma departments (CE, IT, ICT, Mechanical, Electrical, Civil, and Science).
 
 ---
 

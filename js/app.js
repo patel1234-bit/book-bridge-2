@@ -6,7 +6,7 @@
  * ==========================================================================
  */
 
-window.DEFAULT_BOOK_COVER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420' width='300' height='420'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231e3a8a'/%3E%3Cstop offset='100%25' stop-color='%233b82f6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='300' height='420' rx='12' fill='url(%23bg)'/%3E%3Crect x='15' y='15' width='270' height='390' rx='8' fill='none' stroke='rgba(255,255,255,0.2)' stroke-width='2'/%3E%3Ctext x='150' y='180' font-size='56' text-anchor='middle'%3E📚%3C/text%3E%3Ctext x='150' y='235' font-size='20' font-weight='bold' fill='%23ffffff' font-family='system-ui,sans-serif' text-anchor='middle'%3EBookBridge%3C/text%3E%3Ctext x='150' y='265' font-size='13' fill='rgba(255,255,255,0.8)' font-family='system-ui,sans-serif' text-anchor='middle'%3EAcademic Book%3C/text%3E%3C/svg%3E";
+window.DEFAULT_BOOK_COVER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420' width='300' height='420'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231e3a8a'/%3E%3Cstop offset='100%25' stop-color='%233b82f6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='300' height='420' rx='12' fill='url(%23bg)'/%3E%3Crect x='15' y='15' width='270' height='390' rx='8' fill='none' stroke='rgba(255,255,255,0.2)' stroke-width='2'/%3E%3Ctext x='150' y='180' font-size='56' text-anchor='middle'%3E📚%3C/text%3E%3Ctext x='150' y='235' font-size='20' font-weight='bold' fill='%23ffffff' font-family='system-ui,sans-serif' text-anchor='middle'%3EBookBridgee%3C/text%3E%3Ctext x='150' y='265' font-size='13' fill='rgba(255,255,255,0.8)' font-family='system-ui,sans-serif' text-anchor='middle'%3EAcademic Book%3C/text%3E%3C/svg%3E";
 
 window.escapeHTML = function(str) {
   if (str === null || str === undefined) return '';
@@ -327,21 +327,25 @@ async function updateNavUserUI() {
   const role = escapeHTML((currentUser.role || 'student').toUpperCase());
   const safeName = escapeHTML(currentUser.name || currentUser.email || 'User');
   const userHTML = `
-    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary);">
-      <i class="fa-solid fa-user-circle"></i> ${safeName}
-    </span>
-    <a href="dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-gauge"></i> Dashboard</a>
-    <button id="btnNavLogout" class="btn btn-ghost btn-sm">Logout</button>
+    <div class="lang-selector">
+      <button class="lang-select-btn" title="Change Language"><i class="fa-solid fa-globe"></i> <span>EN</span></button>
+    </div>
+    <div class="nav-user-badge">
+      <i class="fa-solid fa-circle-user"></i> <span>${safeName}</span>
+    </div>
+    <a href="dashboard.html" class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:6px;height:38px;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+    <button id="btnNavLogout" class="btn btn-logout" title="Log Out"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
   `;
 
   if (navActions && !adminNavActions) navActions.innerHTML = userHTML;
   if (mobileActions) {
     mobileActions.innerHTML = `
-      <div style="font-size: 13px; font-weight: 600; color: var(--color-primary); padding: 8px 0;">
-        <i class="fa-solid fa-user-circle"></i> ${safeName} (${role})
+      <div style="font-size: 13px; font-weight: 600; color: var(--color-primary); padding: 8px 0; display:flex; align-items:center; gap:6px;">
+        <i class="fa-solid fa-circle-user"></i> ${safeName} (${role})
       </div>
+      <a href="sell.html" class="btn btn-primary btn-block"><i class="fa-solid fa-tag me-1"></i> Sell a Book</a>
       <a href="dashboard.html" class="btn btn-ghost btn-block" style="margin-bottom:8px;text-decoration:none;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
-      <button id="btnMobileLogout" class="btn btn-secondary btn-block">Logout</button>
+      <button id="btnMobileLogout" class="btn btn-secondary btn-block"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Logout</button>
     `;
   }
 
@@ -389,7 +393,7 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
     const coverImg = sanitizeUrl((rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : fallbackCover, fallbackCover);
     const isDigital = b.category === 'digital' && b.pdfUrl;
     const waNumber = ((b.seller?.whatsapp || '+919876543210')).replace(/[^0-9]/g, '');
-    const waMsg = encodeURIComponent(`Hi ${rawSellerName}, I found your book "${b.title || 'book'}" on BookBridge! Is it still available?`);
+    const waMsg = encodeURIComponent(`Hi ${rawSellerName}, I found your book "${b.title || 'book'}" on BookBridgee! Is it still available?`);
     const safePdfUrl = encodeURI(b.pdfUrl || '');
     const bookTitleEscaped = escapeHTML(b.title || 'Academic Book');
     const bookAuthorEscaped = escapeHTML(b.author || 'Unknown');
@@ -515,7 +519,7 @@ window.handleToggleWishlist = async function(e, bookId) {
 window.handleShare = function(title, id) {
   const url = window.location.origin + '/browse.html';
   if (navigator.share) {
-    navigator.share({ title: `${title} - BookBridge`, url })
+    navigator.share({ title: `${title} - BookBridgee`, url })
       .catch(() => {});
   } else {
     navigator.clipboard.writeText(url)
@@ -580,7 +584,7 @@ window.handleBookAction = async function(bookId, actionLabel) {
       ${book.exchangeFor ? `<div class="flex-between"><span style="color: var(--color-gray);">Exchange For</span><span style="font-size:13px;">${escapeHTML(book.exchangeFor)}</span></div>` : ''}
       <div style="padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px; margin-top: 4px;">
         <span style="color: var(--color-gray); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Description</span>
-        <p style="margin-top: 4px; color: var(--color-dark);">${escapeHTML(book.description || 'Academic resource listed on BookBridge.')}</p>
+        <p style="margin-top: 4px; color: var(--color-dark);">${escapeHTML(book.description || 'Academic resource listed on BookBridgee.')}</p>
       </div>
       <div class="flex-between"><span style="color: var(--color-gray);">Listed by</span><strong>${escapeHTML(seller.name || 'Student')}</strong></div>
       <div class="flex-between">
@@ -602,7 +606,7 @@ window.handleBookAction = async function(bookId, actionLabel) {
     </div>
   `;
 
-  waBtn.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(`Hi ${seller.name}, I'm interested in "${book.title}" on BookBridge!`)}`;
+  waBtn.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(`Hi ${seller.name}, I'm interested in "${book.title}" on BookBridgee!`)}`;
   const isDonationMode = book.price === 0 || book.mode === 'donate';
   const isExchangeMode = book.mode === 'exchange';
   const resolvedConfirmLabel = isDonationMode ? 'Claim Book / Contact Donor' : (isExchangeMode ? 'Swap / Contact Student' : 'Buy Book / Contact Seller');
@@ -1749,7 +1753,7 @@ function renderDashboardNotifications(user, myBooks, allBooks) {
 
   notifications.push({
     icon: '🔔', bg: 'var(--color-info-light)', color: 'var(--color-info)',
-    title: 'Welcome to BookBridge!',
+    title: 'Welcome to BookBridgee!',
     desc: `Hi ${user.name.split(' ')[0]}, explore books by your classmates and save on textbooks.`,
     time: new Date(user.createdAt).toLocaleDateString('en-IN'), unread: false
   });

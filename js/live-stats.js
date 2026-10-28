@@ -1,5 +1,5 @@
 /* ==========================================
-   BookBridge - Unified Live Stats Counter Engine
+   BookBridgee - Unified Live Stats Counter Engine
    Real-time animated counters from database across ALL pages
 ========================================== */
 

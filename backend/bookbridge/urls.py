@@ -1,5 +1,5 @@
 """
-BookBridge Main URL Configuration
+BookBridgee Main URL Configuration
 Serves both REST API endpoints, static frontend HTML pages, and frontend assets.
 """
 
@@ -27,7 +27,7 @@ def serve_static_page(request, page='login.html'):
     if filepath.exists() and filepath.is_file():
         with open(filepath, 'rb') as f:
             return HttpResponse(f.read(), content_type='text/html; charset=utf-8')
-    return HttpResponse("<h2>BookBridge Online</h2><p><a href='/browse'>Go to Browse Books</a></p>", content_type='text/html; charset=utf-8')
+    return HttpResponse("<h2>BookBridgee Online</h2><p><a href='/browse'>Go to Browse Books</a></p>", content_type='text/html; charset=utf-8')
 
 MIME_MAP = {
     '.css': 'text/css; charset=utf-8',
@@ -59,7 +59,7 @@ def serve_root_asset(request, asset_path):
 def health_check(request):
     return JsonResponse({
         'status': 'ok',
-        'service': 'BookBridge Enterprise Django Engine',
+        'service': 'BookBridgee Enterprise Django Engine',
         'database': 'MySQL'
     })
 

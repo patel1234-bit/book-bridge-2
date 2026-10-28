@@ -1,4 +1,4 @@
-# BookBridge Enterprise AI Chatbot Backend — Deployment & Operations Guide
+# BookBridgee Enterprise AI Chatbot Backend — Deployment & Operations Guide
 
 ## 🚀 Quick Start (Local Development)
 

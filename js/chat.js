@@ -1,5 +1,5 @@
 /**
- * BookBridge - Real-Time Student Chat & Deal Communication System
+ * BookBridgee - Real-Time Student Chat & Deal Communication System
  * Supports Sell, Buy, Exchange, and Donate workflows with deal banners,
  * quick suggestion chips, price negotiations, pickup locations, and local storage sync.
  */
@@ -82,7 +82,7 @@
     const fab = document.createElement('button');
     fab.id = 'bookBridgeChatFab';
     fab.className = 'bb-chat-fab';
-    fab.setAttribute('aria-label', 'Open BookBridge Chat');
+    fab.setAttribute('aria-label', 'Open BookBridgee Chat');
     fab.title = 'Chat with Students (Buy · Sell · Exchange · Donate)';
     fab.innerHTML = `
       <span class="bb-chat-fab-icon">💬</span>
@@ -107,7 +107,7 @@
             <div class="bb-chat-status-dot"></div>
           </div>
           <div class="bb-chat-user-details">
-            <div id="bbChatUserName" class="bb-chat-user-name">BookBridge Chat</div>
+            <div id="bbChatUserName" class="bb-chat-user-name">BookBridgee Chat</div>
             <div id="bbChatUserStatus" class="bb-chat-user-status">Online · Student Network</div>
           </div>
         </div>
@@ -361,7 +361,7 @@
       el.addEventListener('click', () => {
         const email = el.getAttribute('data-email');
         const name = el.getAttribute('data-name');
-        window.openBookBridgeChat({ receiverEmail: email, receiverName: name });
+        window.openBookBridgeeChat({ receiverEmail: email, receiverName: name });
       });
     });
   }
@@ -376,7 +376,7 @@
   }
 
   // Universal Public Function: Open Chat with a Specific User & Optional Book Deal Context
-  window.openBookBridgeChat = async function (options = {}) {
+  window.openBookBridgeeChat = async function (options = {}) {
     injectChatUI();
 
     const currentUser = getCurrentUser();
@@ -465,7 +465,7 @@
     if (waBtn) {
       const cleanPhone = (activePartner.phone || '+919876543210').replace(/[^0-9]/g, '');
       const dealText = activeDeal?.bookTitle ? ` regarding "${activeDeal.bookTitle}"` : '';
-      waBtn.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi ${activePartner.name}, I'm reaching out on BookBridge${dealText}!`)}`;
+      waBtn.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi ${activePartner.name}, I'm reaching out on BookBridgee${dealText}!`)}`;
       waBtn.style.display = 'flex';
     }
 
@@ -658,7 +658,7 @@
       ];
     } else {
       chips = [
-        '👋 Hello! Reaching out via BookBridge.',
+        '👋 Hello! Reaching out via BookBridgee.',
         '📚 Is your listing still available?',
         '📍 Where on campus do you study?'
       ];

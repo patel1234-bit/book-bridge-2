@@ -16,7 +16,7 @@ export default function LandingPage() {
               B
             </div>
             <span className="font-display font-bold text-xl tracking-tight text-slate-900">
-              BookBridge<span className="text-emerald-600">2.0</span>
+              BookBridgee<span className="text-emerald-600">2.0</span>
             </span>
           </div>
 
@@ -157,9 +157,9 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-bold text-slate-900">
             <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">B</span>
-            BookBridge 2.0
+            BookBridgee 2.0
           </div>
-          <div>© 2026 BookBridge Platform. All rights reserved.</div>
+          <div>© 2026 BookBridgee Platform. All rights reserved.</div>
           <div className="flex gap-6 text-xs font-medium text-slate-600">
             <a href="/terms">Terms</a>
             <a href="/privacy">Privacy</a>

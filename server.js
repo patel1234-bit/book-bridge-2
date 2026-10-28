@@ -129,7 +129,7 @@ const serveStaticFile = (res, filename) => {
     }
   }
 
-  res.status(404).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>404 Not Found - BookBridge</title></head><body><h2>Page not found</h2><p><a href="/browse.html">Go to Browse Books</a></p></body></html>`);
+  res.status(404).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>404 Not Found - BookBridgee</title></head><body><h2>Page not found</h2><p><a href="/browse.html">Go to Browse Books</a></p></body></html>`);
 };
 
 // 4. Serve Static Assets (CSS, JS, Images, Icons)
@@ -164,7 +164,7 @@ app.get(['/api/health', '/health'], (req, res) => {
 
   res.status(isHealthy ? 200 : 503).json({
     status: isHealthy ? 'ok' : 'degraded',
-    service: 'BookBridge Enterprise Engine',
+    service: 'BookBridgee Enterprise Engine',
     database: {
       connected: isHealthy,
       dialect: getDialect()
@@ -258,7 +258,7 @@ const startServer = async () => {
 
     server.listen(PORT, HOST, () => {
       console.log(`===================================================`);
-      console.log(` 🌉 BookBridge 2.0 Production Engine Active`);
+      console.log(` 🌉 BookBridgee 2.0 Production Engine Active`);
       console.log(` 📍 Local URL:     http://localhost:${PORT}`);
       console.log(` 📊 Health Check:  http://localhost:${PORT}/api/health`);
       console.log(` 📚 Browse Books:  http://localhost:${PORT}/browse.html`);

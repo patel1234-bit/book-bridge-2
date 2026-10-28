@@ -1,5 +1,5 @@
 @echo off
-title BookBridge 2.0 Production Server Starter
+title BookBridgee 2.0 Production Server Starter
 echo ==================================================
 echo   📚 BOOKBRIDGE 2.0 PRODUCTION SERVER STARTER 📚
 echo ==================================================
@@ -28,7 +28,7 @@ if not exist node_modules (
 )
 
 echo.
-echo [3/3] Starting BookBridge Production Server on port 8000...
+echo [3/3] Starting BookBridgee Production Server on port 8000...
 echo 🌐 Opening http://localhost:8000/browse.html in your default browser...
 echo.
 

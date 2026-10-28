@@ -102,7 +102,15 @@
 
       <!-- CONTACT FORM -->
       <div class="card animate-on-scroll" style="max-width: 640px; margin: 0 auto 48px; padding: 36px;">
-        <h3 style="margin-bottom: 24px;">Send us a Message</h3>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+          <h3 style="margin: 0;">Send us a Message</h3>
+          <span style="font-size: 12px; font-weight: 600; background: rgba(62,107,58,0.1); color: var(--color-primary); padding: 4px 10px; border-radius: 20px;">
+            <i class="fa-solid fa-envelope me-1"></i> to: bookbridgee@gmail.com
+          </span>
+        </div>
+        <p style="font-size: 13.5px; color: var(--color-gray); margin-bottom: 22px;">
+          Have questions, feedback, or need help? Your query will be delivered directly to the official support inbox at <strong>bookbridgee@gmail.com</strong>.
+        </p>
         <form id="contactPageForm">
           <div class="form-group">
             <i class="fa-solid fa-user form-icon"></i>
@@ -118,21 +126,23 @@
           </div>
           <div class="form-group">
             <select id="contactSubject" class="form-select">
-              <option value="General">General Inquiry</option>
-              <option value="Support">Technical Support</option>
-              <option value="Book">Book Listing Issue</option>
-              <option value="Report">Report a Problem</option>
-              <option value="Feedback">Feedback</option>
+              <option value="General Inquiry">General Inquiry</option>
+              <option value="Technical Support">Technical Support</option>
+              <option value="Book Listing Issue">Book Listing Issue</option>
+              <option value="Report a Problem">Report a Problem</option>
+              <option value="Feedback & Suggestions">Feedback & Suggestions</option>
             </select>
           </div>
           <div class="form-group">
             <textarea id="contactMessage" class="form-input" placeholder="Your message or inquiry..." required style="min-height: 130px; padding: 16px; resize: vertical;"></textarea>
             <div class="form-error">Message is required</div>
           </div>
-          <button type="submit" class="btn btn-primary btn-block btn-lg">
-            <i class="fa-solid fa-paper-plane"></i> Send Message
+          <button type="submit" id="btnSubmitContact" class="btn btn-primary btn-block btn-lg">
+            <i class="fa-solid fa-paper-plane me-1"></i> Send to bookbridgee@gmail.com
           </button>
         </form>
+
+        <div id="contactSuccessCard" style="display: none; margin-top: 24px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 20px;"></div>
       </div>
 
       <!-- FAQ ACCORDION -->

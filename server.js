@@ -254,6 +254,51 @@ app.put('/api/notifications/read', authenticateToken, chatController.markNotific
 app.get('/api/messages', authenticateToken, chatController.getLegacyMessages);
 app.post('/api/messages', authenticateToken, validateMessageInput, (req, res, next) => chatController.sendLegacyMessage(req, res, next, io));
 
+// 10.5 Contact Inquiries Endpoint (Default destination: bookbridgee@gmail.com)
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body || {};
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Name, email, and message are required.' });
+    }
+    const cleanName = String(name).trim();
+    const cleanEmail = String(email).trim();
+    const cleanSubject = String(subject || 'General Inquiry').trim();
+    const cleanMessage = String(message).trim();
+
+    console.log(`[Contact Inquiry] From: "${cleanName}" <${cleanEmail}> | Subject: "${cleanSubject}" -> Forwarded to: bookbridgee@gmail.com`);
+
+    // Record in AuditLog for administrative tracking
+    try {
+      const { AuditLog } = require('./models');
+      if (AuditLog) {
+        await AuditLog.create({
+          action: 'CONTACT_INQUIRY',
+          userId: req.user ? req.user.id : null,
+          targetResource: 'bookbridgee@gmail.com',
+          details: JSON.stringify({
+            name: cleanName,
+            email: cleanEmail,
+            subject: cleanSubject,
+            messagePreview: cleanMessage.substring(0, 150)
+          }),
+          ipAddress: req.ip || req.headers['x-forwarded-for'] || '127.0.0.1'
+        });
+      }
+    } catch (e) {
+      // non-blocking
+    }
+
+    return res.status(200).json({
+      status: 'ok',
+      destination: 'bookbridgee@gmail.com',
+      message: 'Inquiry received and addressed to bookbridgee@gmail.com'
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to process inquiry' });
+  }
+});
+
 // 11. Admin Endpoints (RBAC Enforced: Only Role 'admin')
 app.get('/api/admin/stats', authenticateToken, authorizeRoles('admin'), adminController.getStats);
 app.get('/api/admin/users', authenticateToken, authorizeRoles('admin'), adminController.getUsers);

@@ -1188,22 +1188,141 @@ async function initDonatePage() {
 }
 
 /* 📬 CONTACT */
-function initContactPage() {
+async function initContactPage() {
   const form = document.getElementById('contactPageForm');
-  form?.addEventListener('submit', async (e) => {
+  if (!form) return;
+
+  // Pre-fill student info if user is authenticated
+  try {
+    const user = await window.BookAPI?.getCurrentUser();
+    if (user) {
+      const nameInput = document.getElementById('contactName');
+      const emailInput = document.getElementById('contactEmail');
+      if (nameInput && !nameInput.value) nameInput.value = user.name || '';
+      if (emailInput && !emailInput.value) emailInput.value = user.email || '';
+    }
+  } catch (e) {}
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('contactName').value;
-    const email = document.getElementById('contactEmail').value;
-    const text = document.getElementById('contactMessage').value;
+    const name = document.getElementById('contactName')?.value.trim();
+    const email = document.getElementById('contactEmail')?.value.trim();
+    const subject = document.getElementById('contactSubject')?.value || 'General Inquiry';
+    const text = document.getElementById('contactMessage')?.value.trim();
 
-    const submitBtn = form.querySelector('[type="submit"]');
-    submitBtn.classList.add('btn-loading');
+    if (!name || !email || !text) {
+      showToast('Please fill in all required fields.', 'warning');
+      return;
+    }
 
-    await window.BookAPI.sendMessage(email, text, 'Contact Support');
+    const submitBtn = document.getElementById('btnSubmitContact') || form.querySelector('[type="submit"]');
+    const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Sending to bookbridgee@gmail.com...';
+    }
 
-    submitBtn.classList.remove('btn-loading');
-    showToast(`Thank you, ${name}! Your message has been sent.`, 'success');
-    form.reset();
+    // 1. Submit to backend API & audit log
+    try {
+      if (window.BookAPI && typeof window.BookAPI.submitContactInquiry === 'function') {
+        await window.BookAPI.submitContactInquiry({ name, email, subject, message: text });
+      }
+    } catch (err) {
+      console.warn('Backend inquiry submission note:', err);
+    }
+
+    // 2. Prepare default email to bookbridgee@gmail.com with user details & query
+    const targetEmail = 'bookbridgee@gmail.com';
+    const emailSubject = `[BookBridge ${subject}] Inquiry from ${name}`;
+    const emailBody = `Hello BookBridge Support Team,
+
+I am writing regarding "${subject}" on the BookBridge platform.
+
+--------------------------------------------------
+Student Name: ${name}
+Student Email: ${email}
+Inquiry Category: ${subject}
+Date & Time: ${new Date().toLocaleString('en-IN')}
+--------------------------------------------------
+
+Student Query / Message:
+${text}
+
+--------------------------------------------------
+Platform: BookBridge (https://bookbridge.in)
+`;
+
+    const mailtoUrl = `mailto:${targetEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${targetEmail}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
+    // 3. Open mailto client by default
+    try {
+      window.location.href = mailtoUrl;
+    } catch (e) {}
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnText;
+    }
+
+    showToast(`Inquiry created! Opening email to ${targetEmail}`, 'success');
+
+    // 4. Render visual confirmation and convenient 1-click mail buttons
+    const successBox = document.getElementById('contactSuccessCard');
+    if (successBox) {
+      const safeName = typeof escapeHTML === 'function' ? escapeHTML(name) : name;
+      const safeSubject = typeof escapeHTML === 'function' ? escapeHTML(subject) : subject;
+      const safeText = typeof escapeHTML === 'function' ? escapeHTML(text) : text;
+      const safeEmail = typeof escapeHTML === 'function' ? escapeHTML(email) : email;
+
+      successBox.style.display = 'block';
+      successBox.innerHTML = `
+        <div style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px;">
+          <div style="width: 42px; height: 42px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <div>
+            <h4 style="margin: 0 0 4px; font-size: 16px; color: #166534; font-weight: 700;">
+              Inquiry Addressed to ${targetEmail}
+            </h4>
+            <p style="margin: 0; font-size: 13.5px; color: #15803d; line-height: 1.5;">
+              Thank you <strong>${safeName}</strong>! Your inquiry regarding <strong>"${safeSubject}"</strong> has been prepared for <strong>${targetEmail}</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12.5px; color: #374151; line-height: 1.5;">
+          <div><strong>Recipient:</strong> ${targetEmail}</div>
+          <div><strong>From:</strong> ${safeName} (${safeEmail})</div>
+          <div><strong>Subject:</strong> [BookBridge ${safeSubject}] Inquiry from ${safeName}</div>
+          <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e5e7eb; color: #4b5563;">
+            <em>"${safeText.substring(0, 160)}${safeText.length > 160 ? '...' : ''}"</em>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <a href="${gmailUrl}" target="_blank" class="btn btn-primary btn-sm" style="background: #ea4335; border-color: #ea4335; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-brands fa-google"></i> Open in Gmail Web
+          </a>
+          <a href="${mailtoUrl}" class="btn btn-secondary btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-envelope"></i> Open Default Email App
+          </a>
+          <button type="button" id="btnCopyContactEmail" class="btn btn-ghost btn-sm" style="border: 1px solid #86efac; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-copy"></i> Copy Email
+          </button>
+        </div>
+      `;
+
+      document.getElementById('btnCopyContactEmail')?.addEventListener('click', () => {
+        navigator.clipboard.writeText(targetEmail).then(() => {
+          showToast(`Copied ${targetEmail} to clipboard!`, 'info');
+        }).catch(() => {
+          showToast(targetEmail, 'info');
+        });
+      });
+
+      successBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   });
 }
 

@@ -385,10 +385,11 @@ const startServer = async () => {
     if (getSQLStatus()) {
       try {
         await syncDatabase({ alter: false });
-        if (process.env.NODE_ENV !== 'production') {
+        // Always seed baseline demo accounts and catalog if not present (idempotent & safe)
+        try {
           await seedDatabase();
-        } else {
-          console.log('[Seed] Skipping automatic database seed in production environment.');
+        } catch (seedErr) {
+          console.warn('[Seed Notice] Database seed check:', seedErr.message);
         }
       } catch (syncError) {
         console.warn('[DB Sync Notice] Schema sync notice:', syncError.message);

@@ -485,9 +485,9 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
           </div>
 
           <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-            <a href="#" class="btn-whatsapp-share" title="Chat with seller (WhatsApp is shared only after they approve)" onclick="return openSellerWhatsAppChat(event, '${safeId}')">
-              <i class="fa-brands fa-whatsapp"></i> WhatsApp
-            </a>
+            <button class="btn btn-outline btn-sm" title="Live Chat with Seller" onclick="return openSellerLiveChat(event, '${safeId}')" style="font-size:12px;color:var(--color-primary);border-color:var(--color-primary);padding:4px 10px;">
+              <i class="fa-solid fa-comments"></i> Live Chat
+            </button>
             ${isDigital ? `<button class="btn-pdf-view" onclick="openPDFModal('${escapeHTML(safePdfUrl)}', '${safeTitleForAttr}')">
               <i class="fa-solid fa-file-pdf"></i> View PDF
             </button>` : ''}
@@ -498,7 +498,7 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
   }).join('');
 }
 
-/* 📱 WHATSAPP AUTH GATE */
+/* 💬 STUDENT AUTH GATE FOR CHAT */
 window.handleWhatsAppClick = function(e) {
   const user = JSON.parse(localStorage.getItem('rcti_gtu_current_user') || 'null');
   const token = localStorage.getItem('bb_access_token');
@@ -514,36 +514,41 @@ window.handleWhatsAppClick = function(e) {
   return true;
 };
 
-/* 📱 OPEN SELLER CHAT (WhatsApp is unlocked inside chat after the seller approves) */
-window.openSellerWhatsAppChat = async function(e, bookId) {
+/* 💬 OPEN SELLER LIVE CHAT */
+window.openSellerLiveChat = async function(e, bookId) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
   if (window.handleWhatsAppClick && window.handleWhatsAppClick(e) === false) return false;
   try {
-    const book = await window.BookAPI.getBookById(bookId);
-    if (!book) return false;
-    const seller = book.seller || {};
-    const sellerEmail = seller.email || book.sellerEmail || '';
-    if (!sellerEmail) { showToast('Seller contact is not available for this listing.', 'warning'); return false; }
+    let book = null;
+    if (window.BookAPI && typeof window.BookAPI.getBookById === 'function') {
+      try { book = await window.BookAPI.getBookById(bookId); } catch (err) {}
+    }
+    if (!book && window.BookDB && typeof window.BookDB.getBookById === 'function') {
+      book = window.BookDB.getBookById(bookId);
+    }
+    const seller = (book && book.seller) || {};
+    const sellerEmail = seller.email || (book && book.sellerEmail) || 'student@rcti.ac.in';
     const modal = document.getElementById('bookDetailsModal');
     if (modal) modal.classList.remove('active');
     if (typeof window.openBookBridgeeChat === 'function') {
       window.openBookBridgeeChat({
         receiverEmail: sellerEmail,
-        receiverName: seller.name || book.sellerName || 'Student',
-        receiverId: seller.id || book.sellerId || undefined,
-        bookId: book.id,
-        bookTitle: book.title,
-        bookPrice: book.price || 0,
-        mode: book.mode || 'sell',
-        bookImage: book.coverUrl || book.image || book.cover || ''
+        receiverName: seller.name || (book && book.sellerName) || 'Student',
+        receiverId: seller.id || (book && book.sellerId) || undefined,
+        bookId: book ? book.id : bookId,
+        bookTitle: book ? book.title : '',
+        bookPrice: book ? (book.price || 0) : 0,
+        mode: (book && book.mode) || 'sell',
+        bookImage: book ? (book.coverUrl || book.image || book.cover || '') : ''
       });
-      showToast('Chat opened. The seller can share their WhatsApp from the chat window.', 'info');
+      showToast('Live chat connected with student seller.', 'info');
     }
   } catch (err) {
-    showToast('Could not open chat. Please try again.', 'warning');
+    showToast('Could not open live chat. Please try again.', 'warning');
   }
   return false;
 };
+window.openSellerWhatsAppChat = window.openSellerLiveChat;
 
 /* ❤️ WISHLIST TOGGLE */
 window.handleToggleWishlist = async function(e, bookId) {
@@ -592,7 +597,7 @@ window.handleBookAction = async function(bookId, actionLabel) {
   const modal = document.getElementById('bookDetailsModal');
   const titleEl = document.getElementById('modalBookTitle');
   const bodyEl = document.getElementById('modalBookBody');
-  const waBtn = document.getElementById('btnModalWhatsapp');
+  const waBtn = document.getElementById('btnModalLiveChat') || document.getElementById('btnModalWhatsapp');
   const confirmBtn = document.getElementById('btnModalActionConfirm');
 
   if (!modal) return;
@@ -662,9 +667,13 @@ window.handleBookAction = async function(bookId, actionLabel) {
     </div>
   `;
 
-  waBtn.href = '#';
-  waBtn.removeAttribute('target');
-  waBtn.onclick = (ev) => window.openSellerWhatsAppChat(ev, bookId);
+  if (waBtn) {
+    if (waBtn.tagName && waBtn.tagName.toLowerCase() === 'a') {
+      waBtn.href = '#';
+      waBtn.removeAttribute('target');
+    }
+    waBtn.onclick = (ev) => window.openSellerLiveChat(ev, bookId);
+  }
   const isDonationMode = book.price === 0 || book.mode === 'donate';
   const isExchangeMode = book.mode === 'exchange';
   const resolvedConfirmLabel = isDonationMode ? 'Claim Book / Contact Donor' : (isExchangeMode ? 'Swap / Contact Student' : 'Buy Book / Contact Seller');

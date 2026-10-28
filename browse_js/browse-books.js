@@ -205,17 +205,13 @@ function normalizeApiBook(ab) {
     const rawCover = ab.coverUrl || ab.cover || ab.image || ab.cover_url;
     const bookCover = (rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : defaultCover;
 
-    const sellerData = ab.seller || (ab.seller_details ? {
-        id: ab.seller_details.id || ab.sellerId,
-        name: ab.seller_details.full_name || ab.seller_name || "Student Seller",
-        email: ab.seller_details.email || "student@rcti.ac.in",
-        avatarUrl: ab.seller_details.avatarUrl || ''
-    } : {
-        id: ab.sellerId || (ab.seller && ab.seller.id),
-        name: ab.seller_name || (ab.seller && ab.seller.name) || "Student Seller",
-        email: ab.sellerEmail || "student@rcti.ac.in",
-        avatarUrl: ab.seller ? ab.seller.avatarUrl : ''
-    });
+    const rawSeller = ab.seller || ab.seller_details;
+    const sellerData = {
+        id: (rawSeller && rawSeller.id) || ab.sellerId || undefined,
+        name: (rawSeller && (rawSeller.name || rawSeller.full_name)) || ab.seller_name || "Student Seller",
+        email: (rawSeller && rawSeller.email) || ab.sellerEmail || "student@rcti.ac.in",
+        avatarUrl: (rawSeller && rawSeller.avatarUrl) || ''
+    };
 
     return {
         id: ab.id,

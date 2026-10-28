@@ -1,8 +1,8 @@
 /* ==========================================
-   BookBridge - Browse Books Render
+   BookBridgee - Browse Books Render
 ========================================== */
 
-window.DEFAULT_BOOK_COVER = window.DEFAULT_BOOK_COVER || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420' width='300' height='420'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231e3a8a'/%3E%3Cstop offset='100%25' stop-color='%233b82f6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='300' height='420' rx='12' fill='url(%23bg)'/%3E%3Crect x='15' y='15' width='270' height='390' rx='8' fill='none' stroke='rgba(255,255,255,0.2)' stroke-width='2'/%3E%3Ctext x='150' y='180' font-size='56' text-anchor='middle'%3E📚%3C/text%3E%3Ctext x='150' y='235' font-size='20' font-weight='bold' fill='%23ffffff' font-family='system-ui,sans-serif' text-anchor='middle'%3EBookBridge%3C/text%3E%3Ctext x='150' y='265' font-size='13' fill='rgba(255,255,255,0.8)' font-family='system-ui,sans-serif' text-anchor='middle'%3EAcademic Book%3C/text%3E%3C/svg%3E";
+window.DEFAULT_BOOK_COVER = window.DEFAULT_BOOK_COVER || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420' width='300' height='420'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231e3a8a'/%3E%3Cstop offset='100%25' stop-color='%233b82f6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='300' height='420' rx='12' fill='url(%23bg)'/%3E%3Crect x='15' y='15' width='270' height='390' rx='8' fill='none' stroke='rgba(255,255,255,0.2)' stroke-width='2'/%3E%3Ctext x='150' y='180' font-size='56' text-anchor='middle'%3E📚%3C/text%3E%3Ctext x='150' y='235' font-size='20' font-weight='bold' fill='%23ffffff' font-family='system-ui,sans-serif' text-anchor='middle'%3EBookBridgee%3C/text%3E%3Ctext x='150' y='265' font-size='13' fill='rgba(255,255,255,0.8)' font-family='system-ui,sans-serif' text-anchor='middle'%3EAcademic Book%3C/text%3E%3C/svg%3E";
 const DEFAULT_BOOK_COVER = window.DEFAULT_BOOK_COVER;
 
 function escapeHTML(str) {
@@ -192,10 +192,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                if (typeof window.openBookBridgeChat === "function") {
+                if (typeof window.openBookBridgeeChat === "function") {
                     const seller = book.seller || { name: `Student (${book.department || 'CE'})`, email: 'student@rcti.ac.in', whatsapp: '+919876543210' };
                     const mode = isFree ? "donate" : (isExchange ? "exchange" : "sell");
-                    window.openBookBridgeChat({
+                    window.openBookBridgeeChat({
                         receiverEmail: seller.email,
                         receiverName: seller.name,
                         receiverPhone: seller.whatsapp,
@@ -264,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const descEl = document.getElementById("modalBookDescription");
             if (descEl) {
-                descEl.textContent = book.description || 'Academic textbook listed on the BookBridge campus sharing platform.';
+                descEl.textContent = book.description || 'Academic textbook listed on the BookBridgee campus sharing platform.';
             }
 
             const modalChatBtn = document.getElementById("modalChatActionBtn");
@@ -328,8 +328,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const seller = activeViewedBook.seller || { name: `Student (${activeViewedBook.department || 'CE'})`, email: 'student@rcti.ac.in', whatsapp: '+919876543210' };
             const mode = isFree ? "donate" : (isExchange ? "exchange" : "sell");
 
-            if (typeof window.openBookBridgeChat === "function") {
-                window.openBookBridgeChat({
+            if (typeof window.openBookBridgeeChat === "function") {
+                window.openBookBridgeeChat({
                     receiverEmail: seller.email,
                     receiverName: seller.name,
                     receiverPhone: seller.whatsapp,

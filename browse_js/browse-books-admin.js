@@ -1,5 +1,5 @@
 /* ==========================================
-   BookBridge - Admin Photo & Book Management
+   BookBridgee - Admin Photo & Book Management
 ========================================== */
 
 let isAdminMode = localStorage.getItem("admin_mode") === "true";

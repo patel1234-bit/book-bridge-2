@@ -151,7 +151,7 @@ function _normaliseUser(u) {
   };
 }
 
-// ── BookBridge API Surface ─────────────────────────────────────────────────
+// ── BookBridgee API Surface ─────────────────────────────────────────────────
 
 window.BookAPI = {
 

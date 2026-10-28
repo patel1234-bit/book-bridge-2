@@ -1,5 +1,5 @@
 /* ==========================================
-   BookBridge - Upload & Exchange Offer Logic
+   BookBridgee - Upload & Exchange Offer Logic
 ========================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -182,7 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (booksSec) booksSec.scrollIntoView({ behavior: "smooth" });
 
             // Success Notification
-            alert(`🎉 Success! "${title}" has been added to the BookBridge catalog with an Exchange Offer price of ₹${price}.`);
+            alert(`🎉 Success! "${title}" has been added to the BookBridgee catalog with an Exchange Offer price of ₹${price}.`);
         });
     }
 

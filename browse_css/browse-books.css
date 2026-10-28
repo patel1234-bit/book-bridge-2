@@ -1,5 +1,5 @@
 /* ==========================================
-   BOOKBRIDGE - BROWSE BOOKS PAGE
+   BOOKBRIDGEE - BROWSE BOOKS PAGE
 ========================================== */
 
 /* Google Font */
@@ -20,9 +20,9 @@ html{
 }
 
 body{
-    font-family:'Poppins',sans-serif;
-    background:#F8F6F1;
-    color:#222;
+    font-family: var(--font-family, 'Plus Jakarta Sans', sans-serif);
+    background-color: var(--color-bg, #F8FAFC);
+    color: var(--color-dark, #0F172A);
     overflow-x:hidden;
 }
 
@@ -35,7 +35,35 @@ img{
     display:block;
 }
 
-/* Navbar styles handled by unified style.css */
+/* ==========================================
+   Navbar Compatibility with Home Page Style
+========================================== */
+
+header.navbar#navbar {
+    display: block !important;
+    position: sticky !important;
+    top: 12px !important;
+    z-index: 1050 !important;
+    max-width: var(--max-width, 1280px) !important;
+    margin: 12px auto !important;
+    padding: 0 12px !important;
+    background: var(--surface-glass, rgba(255, 255, 255, 0.8)) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid var(--surface-glass-border, rgba(255, 255, 255, 0.4)) !important;
+    box-shadow: var(--shadow-glass, 0 8px 32px rgba(0, 0, 0, 0.08)) !important;
+    border-radius: var(--radius-pill, 9999px) !important;
+    transition: all 0.3s ease !important;
+}
+
+header.navbar#navbar .navbar-inner {
+    height: 64px !important;
+    padding: 0 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+}
 
 /* Buttons */
 
@@ -66,14 +94,16 @@ img{
 ========================================== */
 
 .hero-section{
-    background:#F8F6F1;
-    padding:80px 0;
+    background: var(--color-bg, #F8FAFC);
+    padding:60px 0 20px;
 }
 
 .hero-title{
+    font-family: var(--font-display, 'Outfit', sans-serif);
     font-size:3rem;
     font-weight:700;
     margin-bottom:20px;
+    color: var(--color-dark, #0F172A);
 }
 
 .hero-description{
@@ -136,8 +166,8 @@ img{
 ========================================== */
 
 .books-section{
-    padding:60px 0;
-    background:#F8F6F1;
+    padding:40px 0 80px;
+    background: var(--color-bg, #F8FAFC);
 }
 
 .book-column{

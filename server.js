@@ -266,7 +266,7 @@ app.post('/api/contact', async (req, res) => {
     const cleanSubject = String(subject || 'General Inquiry').trim();
     const cleanMessage = String(message).trim();
 
-    console.log(`[Contact Inquiry] From: "${cleanName}" <${cleanEmail}> | Subject: "${cleanSubject}" -> Forwarded to: bookbridgee@gmail.com`);
+    console.log(`[Contact Inquiry] From: "${cleanName}" <${cleanEmail}> | Subject: "${cleanSubject}" -> Destination: bookbridgee@gmail.com`);
 
     // Record in AuditLog for administrative tracking
     try {
@@ -289,10 +289,29 @@ app.post('/api/contact', async (req, res) => {
       // non-blocking
     }
 
+    // Try direct SMTP transmission via nodemailer if configured
+    let mailResult = null;
+    try {
+      const mailEngine = require('./config/mail');
+      if (mailEngine && mailEngine.isConfigured) {
+        mailResult = await mailEngine.sendMail({
+          to: mailEngine.TARGET_EMAIL,
+          replyTo: cleanEmail,
+          subject: `[BookBridge ${cleanSubject}] Inquiry from ${cleanName}`,
+          text: `Student Name: ${cleanName}\nStudent Email: ${cleanEmail}\nCategory: ${cleanSubject}\nDate: ${new Date().toLocaleString('en-IN')}\n\nStudent Query:\n${cleanMessage}\n\n-- Sent via BookBridge Student Platform`
+        });
+      }
+    } catch (mailErr) {
+      console.warn('[Contact Mail Dispatch Note]:', mailErr.message);
+    }
+
     return res.status(200).json({
       status: 'ok',
       destination: 'bookbridgee@gmail.com',
-      message: 'Inquiry received and addressed to bookbridgee@gmail.com'
+      sentViaSMTP: Boolean(mailResult?.sent),
+      message: mailResult?.sent
+        ? 'Inquiry emailed directly to bookbridgee@gmail.com via server SMTP!'
+        : 'Inquiry received and addressed to bookbridgee@gmail.com'
     });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to process inquiry' });

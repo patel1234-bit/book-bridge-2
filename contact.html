@@ -112,18 +112,34 @@
           Have questions, feedback, or need help? Your query will be delivered directly to the official support inbox at <strong>bookbridgee@gmail.com</strong>.
         </p>
         <form id="contactPageForm">
+          <!-- Default Recipient (Locked - Cannot change) -->
+          <div class="form-group" style="margin-bottom: 20px;">
+            <i class="fa-solid fa-paper-plane form-icon" style="color: var(--color-primary);"></i>
+            <input type="email" id="contactRecipientEmail" class="form-input form-icon-left" value="bookbridgee@gmail.com" readonly style="background-color: #f1f5f9; cursor: not-allowed; font-weight: 700; color: #166534;">
+            <label class="form-label" style="left: 44px;">Deliver To (Official Support Email) *</label>
+            <div style="font-size: 11.5px; color: #15803d; font-weight: 600; margin-top: 5px; display: flex; align-items: center; gap: 5px;">
+              <i class="fa-solid fa-lock"></i> Default destination: bookbridgee@gmail.com (Fixed - cannot be changed)
+            </div>
+          </div>
+
           <div class="form-group">
             <i class="fa-solid fa-user form-icon"></i>
             <input type="text" id="contactName" class="form-input form-icon-left" placeholder=" " required>
             <label class="form-label" style="left: 44px;">Your Full Name *</label>
             <div class="form-error">Name is required</div>
           </div>
+
+          <!-- User Email Address (Locked for student account - Cannot change) -->
           <div class="form-group">
             <i class="fa-solid fa-envelope form-icon"></i>
-            <input type="email" id="contactEmail" class="form-input form-icon-left" placeholder=" " required>
-            <label class="form-label" style="left: 44px;">Email Address *</label>
+            <input type="email" id="contactEmail" class="form-input form-icon-left" placeholder=" " required readonly style="background-color: #f1f5f9; cursor: not-allowed; font-weight: 600;">
+            <label class="form-label" style="left: 44px;">Your Email Address (User Account) *</label>
+            <div style="font-size: 11.5px; color: var(--color-gray); margin-top: 5px; display: flex; align-items: center; gap: 5px;" id="contactEmailHelp">
+              <i class="fa-solid fa-lock"></i> User email locked to your verified account (Cannot be changed)
+            </div>
             <div class="form-error">Enter a valid email</div>
           </div>
+
           <div class="form-group">
             <select id="contactSubject" class="form-select">
               <option value="General Inquiry">General Inquiry</option>
@@ -133,13 +149,25 @@
               <option value="Feedback & Suggestions">Feedback & Suggestions</option>
             </select>
           </div>
+
           <div class="form-group">
             <textarea id="contactMessage" class="form-input" placeholder="Your message or inquiry..." required style="min-height: 130px; padding: 16px; resize: vertical;"></textarea>
             <div class="form-error">Message is required</div>
           </div>
-          <button type="submit" id="btnSubmitContact" class="btn btn-primary btn-block btn-lg">
-            <i class="fa-solid fa-paper-plane me-1"></i> Send to bookbridgee@gmail.com
-          </button>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button type="submit" id="btnSubmitContact" class="btn btn-primary btn-block btn-lg" style="background: #ea4335; border-color: #ea4335;">
+              <i class="fa-brands fa-google me-2"></i> Send to bookbridgee@gmail.com (Gmail Web)
+            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <button type="button" id="btnSubmitMailApp" class="btn btn-secondary btn-block" style="font-size: 13.5px; padding: 10px 14px;">
+                <i class="fa-solid fa-envelope me-1"></i> Desktop Email App
+              </button>
+              <button type="button" id="btnSubmitOnline" class="btn btn-ghost btn-block" style="border: 1px solid var(--color-border); font-size: 13.5px; padding: 10px 14px;">
+                <i class="fa-solid fa-paper-plane me-1"></i> Send Online Directly
+              </button>
+            </div>
+          </div>
         </form>
 
         <div id="contactSuccessCard" style="display: none; margin-top: 24px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 20px;"></div>

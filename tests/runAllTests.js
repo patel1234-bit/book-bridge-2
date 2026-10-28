@@ -460,6 +460,140 @@ async function runTests() {
       recordTest(18, 'Listings persist and can be filtered by GTU branch and semester', false, e.message);
     }
 
+    // Test 19: Invalid WhatsApp numbers are rejected on registration
+    try {
+      const badNumRes = await request('POST', '/api/register', {
+        name: 'Invalid Phone Student',
+        email: `badphone.${Date.now()}@rcti.ac.in`,
+        password: 'Password123!',
+        whatsapp: '12345' // Invalid: not 10 digits starting with 6-9
+      });
+      assert.strictEqual(badNumRes.status, 400, 'Invalid WhatsApp number returns 400 Bad Request');
+      recordTest(19, 'Invalid WhatsApp numbers are rejected with 400 Bad Request', true);
+    } catch (e) {
+      recordTest(19, 'Invalid WhatsApp numbers are rejected with 400 Bad Request', false, e.message);
+    }
+
+    // Test 20: Guests cannot see seller phone numbers in public book listings
+    try {
+      const publicBooksRes = await request('GET', '/api/books');
+      assert.strictEqual(publicBooksRes.status, 200, 'Public books endpoint returns 200');
+      const hasAnyPhone = publicBooksRes.data.some(b => b.sellerWhatsapp || (b.seller && b.seller.whatsapp));
+      assert.strictEqual(hasAnyPhone, false, 'No seller phone numbers exposed to guests');
+      recordTest(20, 'Guests cannot see seller phone numbers or contact details in public endpoints', true);
+    } catch (e) {
+      recordTest(20, 'Guests cannot see seller phone numbers or contact details in public endpoints', false, e.message);
+    }
+
+    // Test 21: A participant cannot read WhatsApp number before approval (returns 403)
+    try {
+      // First update seller to have a valid WhatsApp number
+      await request('PUT', '/api/users/profile', {
+        whatsapp: '9876543210',
+        whatsappPrivacy: 'share after I approve'
+      }, { Authorization: `Bearer ${sellerToken}` });
+
+      // Buyer tries to get seller's WhatsApp before seller approval
+      const unapprovedRes = await request(
+        'GET',
+        `/api/conversations/${testConversation.id}/whatsapp`,
+        null,
+        { Authorization: `Bearer ${studentToken}` }
+      );
+      assert.strictEqual(unapprovedRes.status, 403, 'Unapproved WhatsApp request returns 403');
+      recordTest(21, 'Participant cannot read WhatsApp number before approval (returns 403)', true);
+    } catch (e) {
+      recordTest(21, 'Participant cannot read WhatsApp number before approval (returns 403)', false, e.message);
+    }
+
+    // Test 22: Non-participant gets 403 on conversation WhatsApp endpoint
+    try {
+      const nonPartRes = await request('POST', '/api/register', {
+        name: 'Non Participant User',
+        email: `nonpart.${Date.now()}@rcti.ac.in`,
+        password: 'Password123!'
+      });
+      const eavesdropWaRes = await request(
+        'GET',
+        `/api/conversations/${testConversation.id}/whatsapp`,
+        null,
+        { Authorization: `Bearer ${nonPartRes.data.token}` }
+      );
+      assert.strictEqual(eavesdropWaRes.status, 403, 'Non-participant returns 403 Forbidden');
+      recordTest(22, 'Non-participants receive 403 Forbidden on WhatsApp access', true);
+    } catch (e) {
+      recordTest(22, 'Non-participants receive 403 Forbidden on WhatsApp access', false, e.message);
+    }
+
+    // Test 23: Once approved, participant gets verified number & Reserved/Sold status updates work
+    try {
+      // Seller approves sharing WhatsApp for this conversation
+      const approveRes = await request(
+        'POST',
+        `/api/conversations/${testConversation.id}/whatsapp/approve`,
+        {},
+        { Authorization: `Bearer ${sellerToken}` }
+      );
+      assert.strictEqual(approveRes.status, 200, 'Approval succeeds');
+
+      // Now buyer can read seller's WhatsApp number
+      const approvedWaRes = await request(
+        'GET',
+        `/api/conversations/${testConversation.id}/whatsapp`,
+        null,
+        { Authorization: `Bearer ${studentToken}` }
+      );
+      assert.strictEqual(approvedWaRes.status, 200, 'Approved WhatsApp request returns 200');
+      assert.strictEqual(approvedWaRes.data.whatsapp, '+919876543210', 'Returns correctly formatted +91 number');
+
+      // Test partial status updates (Reserved and Sold)
+      const reserveRes = await request('PUT', `/api/books/${testBook.id}`, { status: 'Reserved' }, { Authorization: `Bearer ${sellerToken}` });
+      assert.strictEqual(reserveRes.status, 200, 'Listing marked Reserved returns 200');
+      assert.strictEqual(reserveRes.data.status, 'Reserved', 'Status is Reserved');
+
+      const soldRes = await request('PUT', `/api/books/${testBook.id}`, { status: 'Sold' }, { Authorization: `Bearer ${sellerToken}` });
+      assert.strictEqual(soldRes.status, 200, 'Listing marked Sold returns 200');
+      assert.strictEqual(soldRes.data.status, 'Sold', 'Status is Sold');
+
+      recordTest(23, 'WhatsApp consent handshake and listing Reserved/Sold updates succeed', true);
+    } catch (e) {
+      recordTest(23, 'WhatsApp consent handshake and listing Reserved/Sold updates succeed', false, e.message);
+    }
+
+    // Test 24: Logged-in users never receive raw WhatsApp numbers in book or conversation payloads
+    try {
+      const authHdr = { Authorization: `Bearer ${studentToken}` };
+      const listRes = await request('GET', '/api/books', null, authHdr);
+      assert.strictEqual(listRes.status, 200, 'Book list returns 200 for logged-in user');
+      assert.strictEqual(listRes.data.some(b => b.sellerWhatsapp || (b.seller && b.seller.whatsapp)), false, 'Book list has no WhatsApp numbers');
+
+      const oneRes = await request('GET', `/api/books/${testBook.id}`, null, authHdr);
+      assert.strictEqual(oneRes.status, 200, 'Book details return 200');
+      assert.strictEqual(Boolean(oneRes.data.sellerWhatsapp || (oneRes.data.seller && oneRes.data.seller.whatsapp)), false, 'Book details have no WhatsApp number');
+
+      const convRes2 = await request('POST', '/api/conversations', { recipientId: sellerUser.id, bookId: testBook.id }, authHdr);
+      const convJson = JSON.stringify(convRes2.data || {});
+      assert.strictEqual(/"whatsapp"\s*:\s*"\+?\d+/.test(convJson), false, 'Conversation payload has no WhatsApp number');
+      recordTest(24, 'Logged-in users never receive raw WhatsApp numbers in books or conversations', true);
+    } catch (e) {
+      recordTest(24, 'Logged-in users never receive raw WhatsApp numbers in books or conversations', false, e.message);
+    }
+
+    // Test 25: Conversation list exposes consent flags (booleans only) for the chat UI
+    try {
+      const listRes = await request('GET', '/api/conversations', null, { Authorization: `Bearer ${studentToken}` });
+      assert.strictEqual(listRes.status, 200, 'Conversation list returns 200');
+      const conv = listRes.data.find(c => String(c.id) === String(testConversation.id));
+      assert(conv, 'Test conversation is listed');
+      assert.strictEqual(typeof conv.iApprovedWhatsapp, 'boolean', 'iApprovedWhatsapp is boolean');
+      assert.strictEqual(typeof conv.partnerApprovedWhatsapp, 'boolean', 'partnerApprovedWhatsapp is boolean');
+      assert.strictEqual(conv.partnerApprovedWhatsapp, true, 'Seller approval (test 23) is reflected for the buyer');
+      assert.strictEqual(JSON.stringify(conv).includes('whatsapp"'), false, 'No WhatsApp number in conversation list');
+      recordTest(25, 'Conversation list exposes WhatsApp consent flags without numbers', true);
+    } catch (e) {
+      recordTest(25, 'Conversation list exposes WhatsApp consent flags without numbers', false, e.message);
+    }
+
   } catch (error) {
     console.error('Fatal test error:', error);
   } finally {

@@ -68,6 +68,21 @@ const syncDatabase = async (options = {}) => {
   if (!sequelize) return false;
   try {
     await sequelize.sync(options);
+
+    // Ensure newly added columns exist in SQLite or development databases
+    if (sequelize.getDialect() === 'sqlite') {
+      try { await sequelize.query('ALTER TABLE users ADD COLUMN whatsappConsent BOOLEAN DEFAULT 0;'); } catch (e) {}
+      try { await sequelize.query("ALTER TABLE users ADD COLUMN whatsappPrivacy VARCHAR(50) DEFAULT 'share after I approve';"); } catch (e) {}
+      try { await sequelize.query('ALTER TABLE conversations ADD COLUMN user1ApprovedWhatsapp BOOLEAN DEFAULT 0;'); } catch (e) {}
+      try { await sequelize.query('ALTER TABLE conversations ADD COLUMN user2ApprovedWhatsapp BOOLEAN DEFAULT 0;'); } catch (e) {}
+    }
+
+    // Existing MySQL tables: widen image/pdf columns (uploaded covers are base64 and exceed VARCHAR(500))
+    if (sequelize.getDialect() === 'mysql') {
+      try { await sequelize.query('ALTER TABLE books MODIFY coverUrl MEDIUMTEXT NULL;'); } catch (e) {}
+      try { await sequelize.query('ALTER TABLE books MODIFY pdfUrl MEDIUMTEXT NULL;'); } catch (e) {}
+    }
+
     console.log('[Database Sync] Relational tables synchronized successfully.');
     return true;
   } catch (error) {

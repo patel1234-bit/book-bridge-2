@@ -6,7 +6,7 @@
  * ==========================================================================
  */
 
-window.DEFAULT_BOOK_COVER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420' width='300' height='420'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231e3a8a'/%3E%3Cstop offset='100%25' stop-color='%233b82f6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='300' height='420' rx='12' fill='url(%23bg)'/%3E%3Crect x='15' y='15' width='270' height='390' rx='8' fill='none' stroke='rgba(255,255,255,0.2)' stroke-width='2'/%3E%3Ctext x='150' y='180' font-size='56' text-anchor='middle'%3E📚%3C/text%3E%3Ctext x='150' y='235' font-size='20' font-weight='bold' fill='%23ffffff' font-family='system-ui,sans-serif' text-anchor='middle'%3EBookBridgee%3C/text%3E%3Ctext x='150' y='265' font-size='13' fill='rgba(255,255,255,0.8)' font-family='system-ui,sans-serif' text-anchor='middle'%3EAcademic Book%3C/text%3E%3C/svg%3E";
+window.DEFAULT_BOOK_COVER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420' width='300' height='420'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231e3a8a'/%3E%3Cstop offset='100%25' stop-color='%233b82f6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='300' height='420' rx='12' fill='url(%23bg)'/%3E%3Crect x='15' y='15' width='270' height='390' rx='8' fill='none' stroke='rgba(255,255,255,0.2)' stroke-width='2'/%3E%3Ctext x='150' y='180' font-size='56' text-anchor='middle'%3E📚%3C/text%3E%3Ctext x='150' y='235' font-size='20' font-weight='bold' fill='%23ffffff' font-family='system-ui,sans-serif' text-anchor='middle'%3EBookBridge%3C/text%3E%3Ctext x='150' y='265' font-size='13' fill='rgba(255,255,255,0.8)' font-family='system-ui,sans-serif' text-anchor='middle'%3EAcademic Book%3C/text%3E%3C/svg%3E";
 
 window.escapeHTML = function(str) {
   if (str === null || str === undefined) return '';
@@ -130,19 +130,48 @@ function setupMobileMenu() {
   const drawer = document.getElementById('mobileNavDrawer');
   if (!btn || !drawer) return;
 
+  const svgHamburger = '<svg class="mobile-toggle-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+  const svgClose = '<svg class="mobile-toggle-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+  function closeDrawer() {
+    drawer.classList.remove('active');
+    btn.classList.remove('active');
+    btn.innerHTML = svgHamburger;
+    btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function openDrawer() {
+    drawer.classList.add('active');
+    btn.classList.add('active');
+    btn.innerHTML = svgClose;
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const isActive = drawer.classList.toggle('active');
-    btn.innerHTML = isActive ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-bars"></i>';
-    btn.setAttribute('aria-expanded', isActive);
+    if (drawer.classList.contains('active')) {
+      closeDrawer();
+    } else {
+      openDrawer();
+    }
   });
 
   drawer.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', () => {
-      drawer.classList.remove('active');
-      btn.innerHTML = '<i class="fa-solid fa-bars"></i>';
-      btn.setAttribute('aria-expanded', 'false');
+      closeDrawer();
     });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drawer.classList.contains('active')) {
+      closeDrawer();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (drawer.classList.contains('active') && !drawer.contains(e.target) && !btn.contains(e.target)) {
+      closeDrawer();
+    }
   });
 }
 
@@ -327,25 +356,21 @@ async function updateNavUserUI() {
   const role = escapeHTML((currentUser.role || 'student').toUpperCase());
   const safeName = escapeHTML(currentUser.name || currentUser.email || 'User');
   const userHTML = `
-    <div class="lang-selector">
-      <button class="lang-select-btn" title="Change Language"><i class="fa-solid fa-globe"></i> <span>EN</span></button>
-    </div>
-    <div class="nav-user-badge">
-      <i class="fa-solid fa-circle-user"></i> <span>${safeName}</span>
-    </div>
-    <a href="dashboard.html" class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:6px;height:40px;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
-    <button id="btnNavLogout" class="btn btn-logout" title="Log Out"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">
+      <i class="fa-solid fa-user-circle"></i> ${safeName}
+    </span>
+    <a href="dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+    <button id="btnNavLogout" class="btn btn-ghost btn-sm">Logout</button>
   `;
 
   if (navActions && !adminNavActions) navActions.innerHTML = userHTML;
   if (mobileActions) {
     mobileActions.innerHTML = `
-      <div style="font-size: 13px; font-weight: 600; color: var(--color-primary); padding: 8px 0; display:flex; align-items:center; gap:6px;">
-        <i class="fa-solid fa-circle-user"></i> ${safeName} (${role})
+      <div style="font-size: 13px; font-weight: 600; color: var(--color-primary); padding: 8px 0;">
+        <i class="fa-solid fa-user-circle"></i> ${safeName} (${role})
       </div>
-      <a href="sell.html" class="btn btn-primary btn-block"><i class="fa-solid fa-tag me-1"></i> Sell a Book</a>
       <a href="dashboard.html" class="btn btn-ghost btn-block" style="margin-bottom:8px;text-decoration:none;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
-      <button id="btnMobileLogout" class="btn btn-secondary btn-block"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Logout</button>
+      <button id="btnMobileLogout" class="btn btn-secondary btn-block">Logout</button>
     `;
   }
 
@@ -392,8 +417,8 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
     const rawCover = b.coverUrl || b.cover || b.image || b.cover_url;
     const coverImg = sanitizeUrl((rawCover && rawCover !== window.DEFAULT_BOOK_COVER) ? rawCover : fallbackCover, fallbackCover);
     const isDigital = b.category === 'digital' && b.pdfUrl;
-    const waNumber = ((b.seller?.whatsapp || '+919876543210')).replace(/[^0-9]/g, '');
-    const waMsg = encodeURIComponent(`Hi ${rawSellerName}, I found your book "${b.title || 'book'}" on BookBridgee! Is it still available?`);
+    const waNumber = ''; // numbers are never exposed in the UI; contact goes through the consent-based chat
+    const waMsg = encodeURIComponent(`Hi ${rawSellerName}, I found your book "${b.title || 'book'}" on BookBridge! Is it still available?`);
     const safePdfUrl = encodeURI(b.pdfUrl || '');
     const bookTitleEscaped = escapeHTML(b.title || 'Academic Book');
     const bookAuthorEscaped = escapeHTML(b.author || 'Unknown');
@@ -460,7 +485,7 @@ async function renderBooksGrid(container, books, actionLabel = 'View Details') {
           </div>
 
           <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-            <a href="https://wa.me/${waNumber}?text=${waMsg}" target="_blank" rel="noopener" class="btn-whatsapp-share" title="Chat on WhatsApp" onclick="return handleWhatsAppClick(event)">
+            <a href="#" class="btn-whatsapp-share" title="Chat with seller (WhatsApp is shared only after they approve)" onclick="return openSellerWhatsAppChat(event, '${safeId}')">
               <i class="fa-brands fa-whatsapp"></i> WhatsApp
             </a>
             ${isDigital ? `<button class="btn-pdf-view" onclick="openPDFModal('${escapeHTML(safePdfUrl)}', '${safeTitleForAttr}')">
@@ -487,6 +512,37 @@ window.handleWhatsAppClick = function(e) {
     return false;
   }
   return true;
+};
+
+/* 📱 OPEN SELLER CHAT (WhatsApp is unlocked inside chat after the seller approves) */
+window.openSellerWhatsAppChat = async function(e, bookId) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  if (window.handleWhatsAppClick && window.handleWhatsAppClick(e) === false) return false;
+  try {
+    const book = await window.BookAPI.getBookById(bookId);
+    if (!book) return false;
+    const seller = book.seller || {};
+    const sellerEmail = seller.email || book.sellerEmail || '';
+    if (!sellerEmail) { showToast('Seller contact is not available for this listing.', 'warning'); return false; }
+    const modal = document.getElementById('bookDetailsModal');
+    if (modal) modal.classList.remove('active');
+    if (typeof window.openBookBridgeeChat === 'function') {
+      window.openBookBridgeeChat({
+        receiverEmail: sellerEmail,
+        receiverName: seller.name || book.sellerName || 'Student',
+        receiverId: seller.id || book.sellerId || undefined,
+        bookId: book.id,
+        bookTitle: book.title,
+        bookPrice: book.price || 0,
+        mode: book.mode || 'sell',
+        bookImage: book.coverUrl || book.image || book.cover || ''
+      });
+      showToast('Chat opened. The seller can share their WhatsApp from the chat window.', 'info');
+    }
+  } catch (err) {
+    showToast('Could not open chat. Please try again.', 'warning');
+  }
+  return false;
 };
 
 /* ❤️ WISHLIST TOGGLE */
@@ -519,7 +575,7 @@ window.handleToggleWishlist = async function(e, bookId) {
 window.handleShare = function(title, id) {
   const url = window.location.origin + '/browse.html';
   if (navigator.share) {
-    navigator.share({ title: `${title} - BookBridgee`, url })
+    navigator.share({ title: `${title} - BookBridge`, url })
       .catch(() => {});
   } else {
     navigator.clipboard.writeText(url)
@@ -542,8 +598,8 @@ window.handleBookAction = async function(bookId, actionLabel) {
   if (!modal) return;
 
   titleEl.textContent = book.title;
-  const seller = book.seller || { name: 'Student', whatsapp: '+919876543210', email: 'student@rcti.ac.in' };
-  const waNumber = (seller.whatsapp || '+919876543210').replace(/[^0-9]/g, '');
+  const seller = book.seller || { name: 'Student', email: 'student@rcti.ac.in' };
+  const waNumber = ''; // numbers are never exposed in the UI; contact goes through the consent-based chat
   const ratingVal = seller.rating || book.rating || 4.8;
 
   const stars = Array.from({ length: 5 }, (_, i) =>
@@ -584,7 +640,7 @@ window.handleBookAction = async function(bookId, actionLabel) {
       ${book.exchangeFor ? `<div class="flex-between"><span style="color: var(--color-gray);">Exchange For</span><span style="font-size:13px;">${escapeHTML(book.exchangeFor)}</span></div>` : ''}
       <div style="padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px; margin-top: 4px;">
         <span style="color: var(--color-gray); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Description</span>
-        <p style="margin-top: 4px; color: var(--color-dark);">${escapeHTML(book.description || 'Academic resource listed on BookBridgee.')}</p>
+        <p style="margin-top: 4px; color: var(--color-dark);">${escapeHTML(book.description || 'Academic resource listed on BookBridge.')}</p>
       </div>
       <div class="flex-between"><span style="color: var(--color-gray);">Listed by</span><strong>${escapeHTML(seller.name || 'Student')}</strong></div>
       <div class="flex-between">
@@ -606,7 +662,9 @@ window.handleBookAction = async function(bookId, actionLabel) {
     </div>
   `;
 
-  waBtn.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(`Hi ${seller.name}, I'm interested in "${book.title}" on BookBridgee!`)}`;
+  waBtn.href = '#';
+  waBtn.removeAttribute('target');
+  waBtn.onclick = (ev) => window.openSellerWhatsAppChat(ev, bookId);
   const isDonationMode = book.price === 0 || book.mode === 'donate';
   const isExchangeMode = book.mode === 'exchange';
   const resolvedConfirmLabel = isDonationMode ? 'Claim Book / Contact Donor' : (isExchangeMode ? 'Swap / Contact Student' : 'Buy Book / Contact Seller');
@@ -681,15 +739,19 @@ async function initHomePage() {
   const aiSection = document.getElementById('aiRecommendationsSection');
   const aiGrid = document.getElementById('aiRecommendationsGrid');
   if (aiSection && aiGrid) {
-    const user = await window.BookAPI.getCurrentUser();
-    if (user) {
-      const recs = await window.BookAPI.getAIRecommendations(user.branch || 'CE', user.semester || 5);
-      if (recs && recs.length > 0) {
-        aiSection.style.display = 'block';
-        const branchInfo = document.getElementById('aiRecBranchInfo');
-        if (branchInfo) branchInfo.textContent = `Based on your profile: ${user.branch || 'CE'} · Semester ${user.semester || 5}`;
-        await renderBooksGrid(aiGrid, recs.slice(0, 4), 'View Details');
+    try {
+      const user = await window.BookAPI.getCurrentUser();
+      if (user && typeof window.BookAPI?.getAIRecommendations === 'function') {
+        const recs = await window.BookAPI.getAIRecommendations(user.branch || 'CE', user.semester || 5);
+        if (recs && recs.length > 0) {
+          aiSection.style.display = 'block';
+          const branchInfo = document.getElementById('aiRecBranchInfo');
+          if (branchInfo) branchInfo.textContent = `Based on your profile: ${user.branch || 'CE'} · Semester ${user.semester || 5}`;
+          await renderBooksGrid(aiGrid, recs.slice(0, 4), 'View Details');
+        }
       }
+    } catch (aiErr) {
+      console.warn('[AI Recommendations]', aiErr.message);
     }
   }
 }
@@ -946,7 +1008,7 @@ async function initSellPage() {
           seller: {
             name: activeUser.name || 'Verified Student',
             email: activeUser.email || 'student@rcti.ac.in',
-            whatsapp: activeUser.whatsapp || '+919876543210'
+            whatsapp: activeUser.whatsapp || ''
           },
           isUserListed: true
         });
@@ -1280,12 +1342,19 @@ function initRegisterPage() {
     e.preventDefault();
     const submitBtn = document.getElementById('registerSubmitBtn');
 
+    const waInput = document.getElementById('regWhatsapp');
+    const waPrivacyInput = document.getElementById('regWhatsappPrivacy');
+    const waConsentInput = document.getElementById('regWhatsappConsent');
+
     const userData = {
       name: document.getElementById('regName').value.trim(),
       enrollment: document.getElementById('regEnrollment').value.trim(),
       branch: document.getElementById('regBranch').value,
       email: document.getElementById('regEmail').value.trim(),
-      password: document.getElementById('regPassword').value.trim()
+      password: document.getElementById('regPassword').value.trim(),
+      whatsapp: waInput ? waInput.value.trim() : '',
+      whatsappPrivacy: waPrivacyInput ? waPrivacyInput.value : 'share after I approve',
+      whatsappConsent: waConsentInput ? waConsentInput.checked : true
     };
 
     let valid = true;
@@ -1562,8 +1631,15 @@ async function initDashboardPage() {
         <div class="flex-between"><span style="color:var(--color-gray);">Enrollment</span><strong>${escapeHTML(user.enrollment || 'N/A')}</strong></div>
         <div class="flex-between"><span style="color:var(--color-gray);">Department</span><span class="badge badge-primary">${escapeHTML(user.branch || 'CE')}</span></div>
         <div class="flex-between"><span style="color:var(--color-gray);">Semester</span><strong>${escapeHTML(user.semester ? 'Sem ' + user.semester : 'N/A')}</strong></div>
+        <div class="flex-between"><span style="color:var(--color-gray);">WhatsApp</span><strong style="color:#25D366;">${escapeHTML(user.whatsapp || 'Not linked')}</strong></div>
+        <div class="flex-between"><span style="color:var(--color-gray);">WhatsApp Privacy</span><span class="badge badge-success" style="font-size:11px;">${escapeHTML(user.whatsappPrivacy || 'Share after I approve')}</span></div>
         <div class="flex-between"><span style="color:var(--color-gray);">Role</span><strong>${escapeHTML((user.role || 'student').toUpperCase())}</strong></div>
         <div class="flex-between"><span style="color:var(--color-gray);">Member Since</span><strong>${escapeHTML(new Date(user.createdAt || Date.now()).toLocaleDateString('en-IN', {year:'numeric',month:'short',day:'numeric'}))}</strong></div>
+      </div>
+      <div style="margin-top:16px;border-top:1px solid var(--color-border);padding-top:14px;text-align:center;">
+        <button onclick="handleEditWhatsAppSettings()" class="btn btn-outline btn-sm" style="font-size:12px;color:#25D366;border-color:#25D366;">
+          <i class="fa-brands fa-whatsapp"></i> Update WhatsApp Settings
+        </button>
       </div>
     `;
   }
@@ -1753,7 +1829,7 @@ function renderDashboardNotifications(user, myBooks, allBooks) {
 
   notifications.push({
     icon: '🔔', bg: 'var(--color-info-light)', color: 'var(--color-info)',
-    title: 'Welcome to BookBridgee!',
+    title: 'Welcome to BookBridge!',
     desc: `Hi ${user.name.split(' ')[0]}, explore books by your classmates and save on textbooks.`,
     time: new Date(user.createdAt).toLocaleDateString('en-IN'), unread: false
   });
@@ -1801,6 +1877,33 @@ window.handleMarkSold = async function(bookId, btn) {
   showToast('Marked as Sold!', 'success');
   if (btn) { btn.textContent = '✅ Sold'; btn.disabled = true; }
   setTimeout(() => initDashboardPage(), 1000);
+};
+
+/* ─── Profile WhatsApp Settings ─── */
+window.handleEditWhatsAppSettings = async function() {
+  const user = JSON.parse(localStorage.getItem('rcti_gtu_current_user') || '{}');
+  const currentNum = user.whatsapp ? user.whatsapp.replace('+91', '') : '';
+  const newNum = prompt('Enter your 10-digit WhatsApp number (leave empty to unlink):', currentNum);
+  if (newNum === null) return;
+  const isApproved = confirm('Click OK for "Share after I approve" (Recommended), or Cancel for "Hide" (Never share):');
+  const privacy = isApproved ? 'share after I approve' : 'hide';
+  try {
+    const res = await window.BookAPI.updateProfile({
+      whatsapp: newNum.trim(),
+      whatsappPrivacy: privacy,
+      whatsappConsent: true
+    });
+    if (res && res.user) {
+      localStorage.setItem('rcti_gtu_current_user', JSON.stringify(res.user));
+    }
+    showToast('WhatsApp settings updated successfully!', 'success');
+    setTimeout(() => {
+      if (typeof initDashboardPage === 'function') initDashboardPage();
+      else location.reload();
+    }, 600);
+  } catch (err) {
+    showToast(err.message || 'Could not update WhatsApp settings', 'danger');
+  }
 };
 
 window.handleDeleteMyBook = async function(bookId) {
@@ -1929,3 +2032,32 @@ async function renderSwapMatchmakerBanner(containerId) {
   `;
 }
 
+
+window.toggleProfileWaSettings = function() {
+  const wrap = document.getElementById('profileWaEditFormWrap');
+  if (wrap) wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+};
+
+window.saveProfileWaSettings = async function(btn) {
+  const wa = (document.getElementById('profWaInput')?.value || '').trim();
+  const privacy = document.getElementById('profWaPrivacySelect')?.value || 'share after I approve';
+
+  if (wa) {
+    const clean = wa.replace(/[\s\-\(\)]/g, '').replace(/^\+91/, '').replace(/^91/, '').replace(/^0/, '');
+    if (!/^[6-9]\d{9}$/.test(clean)) {
+      showToast('Please enter a valid 10-digit Indian WhatsApp number starting with 6-9', 'warning');
+      return;
+    }
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  try {
+    await window.BookAPI.updateProfile({ whatsapp: wa, whatsappPrivacy: privacy });
+    showToast('WhatsApp privacy settings updated!', 'success');
+    const cur = await window.BookAPI.getCurrentUser();
+    setTimeout(() => initDashboardPage(), 800);
+  } catch (err) {
+    showToast(err.message || 'Failed to update settings', 'danger');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save WhatsApp Privacy'; }
+  }
+};

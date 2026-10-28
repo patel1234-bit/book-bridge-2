@@ -29,7 +29,9 @@
       <div class="nav-actions">
         <a href="login.html" class="btn btn-ghost">Login</a>
       </div>
-      <button class="mobile-toggle" id="mobileMenuToggle"><i class="fa-solid fa-bars"></i></button>
+      <button class="mobile-toggle" id="mobileMenuToggle">
+        <svg class="mobile-toggle-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
     </div>
   </header>
 
@@ -134,6 +136,27 @@
               <div class="strength-bar" id="str4"></div>
             </div>
             <p class="text-caption" id="passwordStrengthText" style="margin-top: 4px; margin-bottom: 16px;"></p>
+
+            <!-- WHATSAPP NUMBER & PRIVACY -->
+            <div class="form-group">
+              <i class="fa-brands fa-whatsapp form-icon" style="color: #25D366;"></i>
+              <input type="tel" id="regWhatsapp" class="form-input form-icon-left" placeholder=" " maxlength="14" autocomplete="tel">
+              <label class="form-label" style="left: 44px;">WhatsApp Number (10 digits starting 6-9)</label>
+              <div class="form-error">Enter a valid 10-digit Indian mobile number</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label style="display: block; font-size: 12.5px; font-weight: 600; color: var(--color-gray); margin-bottom: 6px;">WhatsApp Privacy Setting</label>
+              <select id="regWhatsappPrivacy" class="form-select">
+                <option value="share after I approve" selected>Share after I approve (Privacy-Safe Default)</option>
+                <option value="hide">Hide (Never share my number)</option>
+              </select>
+            </div>
+
+            <label class="form-checkbox" style="margin-bottom: 16px;">
+              <input type="checkbox" id="regWhatsappConsent" checked>
+              Allow trade partners to connect via WhatsApp according to my privacy settings
+            </label>
 
             <label class="form-checkbox" style="margin-bottom: 20px;">
               <input type="checkbox" id="regTerms" required>

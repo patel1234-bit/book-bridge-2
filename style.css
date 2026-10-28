@@ -612,7 +612,7 @@ p,
   position: sticky;
   top: 12px;
   z-index: var(--z-sticky);
-  max-width: var(--max-width);
+  max-width: min(var(--max-width), calc(100vw - 24px));
   margin: 12px auto;
   padding: 0 12px;
   background: var(--surface-glass);
@@ -622,7 +622,6 @@ p,
   box-shadow: var(--shadow-glass);
   border-radius: var(--radius-pill);
   transition: all var(--tr-normal);
-  display: block;
 }
 
 .navbar.scrolled {
@@ -691,13 +690,14 @@ p,
 }
 
 .nav-link {
-  padding: 8px 16px;
+  padding: 8px 12px;
   font-size: 15px;
   font-weight: var(--weight-medium);
   color: var(--color-gray);
   border-radius: var(--radius-sm);
   transition: all var(--tr-fast);
   position: relative;
+  white-space: nowrap;
 }
 
 .nav-link:hover {
@@ -725,7 +725,7 @@ p,
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -733,53 +733,6 @@ p,
   height: 40px;
   padding: 0 18px;
   font-size: var(--text-small);
-}
-
-.nav-actions .nav-user-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 40px;
-  padding: 0 14px;
-  border-radius: var(--radius-pill);
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 13px;
-  font-weight: var(--weight-semibold);
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.nav-actions #btnNavLogout,
-.nav-actions #btnBrowseLogout,
-.nav-actions .btn-logout {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: var(--radius-btn);
-  border: 1px solid rgba(244, 63, 94, 0.25);
-  color: var(--color-danger);
-  background: rgba(244, 63, 94, 0.08);
-  font-size: var(--text-small);
-  font-weight: var(--weight-medium);
-  font-family: inherit;
-  cursor: pointer;
-  line-height: 1;
-  vertical-align: middle;
-  transition: all var(--tr-fast);
-}
-
-.nav-actions #btnNavLogout:hover,
-.nav-actions #btnBrowseLogout:hover,
-.nav-actions .btn-logout:hover {
-  background: var(--color-danger);
-  color: #ffffff;
-  border-color: var(--color-danger);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.25);
 }
 
 /* Mobile toggle */
@@ -984,7 +937,7 @@ p,
 
 .hero-floating-card-1 {
   top: 24px;
-  left: -20px;
+  left: 0px;
 }
 
 .hero-float-icon {
@@ -2809,6 +2762,11 @@ textarea.form-input~.form-label {
   font-size: var(--text-small);
 }
 
+.contact-card p a {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
 /* ==========================================================================
    36. AUTH LAYOUT (Login/Register)
    ========================================================================== */
@@ -3204,12 +3162,12 @@ textarea.form-input~.form-label {
 
 .hero-floating-card-1 {
   top: -20px;
-  left: -20px;
+  left: 0px;
 }
 
 .hero-floating-card-2 {
   bottom: 20px;
-  right: -20px;
+  right: 0px;
   animation-delay: 2s;
 }
 
@@ -3274,7 +3232,7 @@ textarea.form-input~.form-label {
   box-shadow: 0 4px 12px rgba(62, 107, 58, 0.25);
 }
 
-/* Why Choose BookBridgee Feature Cards */
+/* Why Choose BookBridge Feature Cards */
 .feature-card {
   background: var(--color-white);
   border-radius: var(--radius);
@@ -3628,8 +3586,38 @@ textarea.form-input~.form-label {
    39. RESPONSIVE DESIGN
    ========================================================================== */
 
+
+/* Large Tablet / Small Desktop (< 1200px) */
+@media (max-width: 1199px) {
+  .nav-links,
+  .nav-actions {
+    display: none !important;
+  }
+
+  .mobile-toggle {
+    display: flex !important;
+  }
+
+  .brand-tagline {
+    display: none;
+  }
+
+  .mobile-drawer {
+    top: 72px;
+  }
+}
+
 /* Tablet (< 1024px) */
 @media (max-width: 1024px) {
+  .fab-btn {
+    bottom: 84px;
+    right: 20px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  .hero-actions {
+    justify-content: center;
+  }
   :root {
     --text-h1: 34px;
     --text-h2: 28px;
@@ -4575,4 +4563,4 @@ textarea.form-input~.form-label {
   align-items: center;
   gap: 8px;
 }
-
+

@@ -47,11 +47,13 @@ exports.configureSecurity = (app) => {
         return callback(null, true);
       }
       // Allow known localhost origins for development
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      let originHost = '';
+      try { originHost = new URL(origin).hostname; } catch (e) { originHost = ''; }
+      if (originHost === 'localhost' || originHost === '127.0.0.1') {
         return callback(null, true);
       }
       // Allow Render hosted domains (*.onrender.com)
-      if (origin.endsWith('.onrender.com')) {
+      if (originHost.endsWith('.onrender.com')) {
         return callback(null, true);
       }
       // Allow configured production origins
@@ -62,7 +64,7 @@ exports.configureSecurity = (app) => {
       callback(new Error(`CORS policy: Origin '${origin}' is not allowed.`));
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
   }));
 

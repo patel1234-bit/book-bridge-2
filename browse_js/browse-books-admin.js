@@ -4,9 +4,20 @@
 
 let isAdminMode = localStorage.getItem("admin_mode") === "true";
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     const adminToggleBtn = document.getElementById("adminToggleBtn");
     const adminBadge = document.getElementById("adminBadge");
+    const currentUser = JSON.parse(localStorage.getItem("rcti_gtu_current_user") || "null");
+    const isRealAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'SUPER_ADMIN');
+    if (!isRealAdmin) {
+        if (adminToggleBtn) adminToggleBtn.style.display = 'none';
+        if (adminBadge) adminBadge.style.display = 'none';
+        localStorage.setItem("admin_mode", "false");
+        isAdminMode = false;
+        return;
+    } else {
+        if (adminToggleBtn) adminToggleBtn.classList.remove('d-none');
+    }
     const editBookForm = document.getElementById("editBookForm");
     const editImageFile = document.getElementById("editImageFile");
     const editImagePreview = document.getElementById("editImagePreview");
@@ -37,16 +48,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (adminToggleBtn) {
         adminToggleBtn.addEventListener("click", () => {
             if (!isAdminMode) {
-                const pass = prompt("Enter Admin Security Passcode (Default: admin123):");
-                if (pass === "admin123" || pass === "admin") {
-                    isAdminMode = true;
-                    localStorage.setItem("admin_mode", "true");
-                    alert("🔓 Admin Edit Mode Activated! You can now edit/replace cover photos and delete books.");
-                } else if (pass !== null) {
-                    alert("❌ Incorrect Admin Passcode.");
-                    return;
-                }
-            } else {
+        if (!isRealAdmin) {
+            alert("❌ Unauthorized: Only verified administrators can access Admin Mode.");
+            return;
+        }
+        isAdminMode = true;
+        localStorage.setItem("admin_mode", "true");
+        alert("🔓 Admin Edit Mode Activated.");
+    } else {
                 isAdminMode = false;
                 localStorage.setItem("admin_mode", "false");
                 alert("🔒 Admin Mode Exited.");

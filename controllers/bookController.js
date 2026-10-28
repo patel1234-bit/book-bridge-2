@@ -63,7 +63,18 @@ exports.getBooks = async (req, res, next) => {
       order: [['createdAt', 'DESC']]
     });
 
-    return res.json(books);
+    const isGuest = !req.user;
+    const sanitized = books.map((book) => {
+      const b = book.toJSON ? book.toJSON() : { ...book };
+      // WhatsApp numbers are never exposed in listings; use the consent-based chat flow
+      delete b.sellerWhatsapp;
+      if (isGuest) {
+        delete b.sellerEmail;
+      }
+      return b;
+    });
+
+    return res.json(sanitized);
   } catch (error) {
     next(error);
   }
@@ -80,7 +91,7 @@ exports.getBookById = async (req, res, next) => {
         {
           model: User,
           as: 'seller',
-          attributes: ['id', 'name', 'email', 'role', 'whatsapp', 'branch', 'semester', 'avatarUrl']
+          attributes: ['id', 'name', 'email', 'role', 'branch', 'semester', 'avatarUrl']
         }
       ]
     });
@@ -89,7 +100,19 @@ exports.getBookById = async (req, res, next) => {
       return res.status(404).json({ error: 'Book listing not found.', status: 404 });
     }
 
-    return res.json(book);
+    const isGuest = !req.user;
+    const bookData = book.toJSON ? book.toJSON() : { ...book };
+    // WhatsApp numbers are never exposed in book details; use the consent-based chat flow
+    delete bookData.sellerWhatsapp;
+    if (bookData.seller) delete bookData.seller.whatsapp;
+    if (isGuest) {
+      delete bookData.sellerEmail;
+      if (bookData.seller) {
+        delete bookData.seller.email;
+      }
+    }
+
+    return res.json(bookData);
   } catch (error) {
     next(error);
   }
@@ -153,9 +176,16 @@ exports.createBook = async (req, res, next, io) => {
       sellerWhatsapp: seller ? (seller.whatsapp || '') : ''
     });
 
-    // Real-time broadcast to all connected clients
+    // Real-time broadcast to all connected clients (sanitize private seller details)
     if (io) {
-      io.emit('newBook', newBook);
+      const broadcastBook = newBook.toJSON ? newBook.toJSON() : { ...newBook };
+      delete broadcastBook.sellerWhatsapp;
+      delete broadcastBook.sellerEmail;
+      if (broadcastBook.seller) {
+        delete broadcastBook.seller.email;
+        delete broadcastBook.seller.whatsapp;
+      }
+      io.emit('newBook', broadcastBook);
     }
 
     return res.status(201).json(newBook);
@@ -200,7 +230,14 @@ exports.updateBook = async (req, res, next, io) => {
     await book.save();
 
     if (io) {
-      io.emit('bookUpdated', book);
+      const broadcastBook = book.toJSON ? book.toJSON() : { ...book };
+      delete broadcastBook.sellerWhatsapp;
+      delete broadcastBook.sellerEmail;
+      if (broadcastBook.seller) {
+        delete broadcastBook.seller.email;
+        delete broadcastBook.seller.whatsapp;
+      }
+      io.emit('bookUpdated', broadcastBook);
     }
 
     return res.json(book);

@@ -59,6 +59,14 @@ if (sequelize) {
       type: DataTypes.STRING(50),
       defaultValue: ''
     },
+    whatsappConsent: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    whatsappPrivacy: {
+      type: DataTypes.STRING(50),
+      defaultValue: 'share after I approve'
+    },
     role: {
       type: DataTypes.STRING(50),
       defaultValue: 'student', // 'student', 'faculty', 'alumni', 'admin'

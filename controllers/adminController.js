@@ -83,6 +83,10 @@ exports.updateUserRole = async (req, res, next) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
+    if (user.id === req.user.id && role.toLowerCase() !== 'admin') {
+      return res.status(400).json({ error: 'You cannot remove your own admin role.' });
+    }
+
     const oldRole = user.role;
     user.role = role.toLowerCase();
     await user.save();
@@ -117,6 +121,10 @@ exports.toggleUserStatus = async (req, res, next) => {
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (user.id === req.user.id && !Boolean(isActive)) {
+      return res.status(400).json({ error: 'You cannot deactivate your own account.' });
     }
 
     user.isActive = Boolean(isActive);

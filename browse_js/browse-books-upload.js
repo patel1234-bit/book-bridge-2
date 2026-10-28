@@ -134,13 +134,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         name: currentUser.name || 'Student Seller',
                         email: currentUser.email || 'student@rcti.edu',
                         role: currentUser.role || 'student',
-                        whatsapp: currentUser.whatsapp || '+919876543210'
+                        whatsapp: currentUser.whatsapp || ''
                     } : {
                         id: 'usr-guest',
                         name: 'Student Seller',
                         email: 'student@rcti.edu',
                         role: 'student',
-                        whatsapp: '+919876543210'
+                        whatsapp: ''
                     },
                     createdAt: new Date().toISOString()
                 };

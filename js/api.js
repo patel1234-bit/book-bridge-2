@@ -267,6 +267,10 @@ window.BookAPI = {
   },
 
   async getCurrentUser() {
+    const token = _getToken();
+    if (!token) {
+      return null;
+    }
     try {
       const user = await _get('/auth/me');
       if (user) {
@@ -279,7 +283,25 @@ window.BookAPI = {
         try { return JSON.parse(stored); } catch (err) {}
       }
     }
-    return window.BookDB ? window.BookDB.getCurrentUser() : null;
+    return null;
+  },
+
+  async getAIRecommendations(branch = 'CE', semester = 5) {
+    try {
+      const books = await this.getBooks({ branch, semester });
+      if (Array.isArray(books) && books.length > 0) {
+        return books.slice(0, 4);
+      }
+      const fallback = await this.getBooks({ branch });
+      if (Array.isArray(fallback) && fallback.length > 0) {
+        return fallback.slice(0, 4);
+      }
+      const allBooks = await this.getBooks();
+      return Array.isArray(allBooks) ? allBooks.slice(0, 4) : [];
+    } catch (e) {
+      console.warn('[AI Recs] Could not load recommendations:', e.message);
+      return [];
+    }
   },
 
   async updateProfile(profileData) {
@@ -418,7 +440,30 @@ window.BookAPI = {
     }
   },
 
-  // ── WISHLIST ───────────────────────────────────────────────────────────
+
+
+
+  async updateBookStatus(id, status) {
+    return await _put(`/books/${id}`, { status });
+  },
+
+  async getConversationWhatsApp(conversationId) {
+    return await _get(`/conversations/${conversationId}/whatsapp`);
+  },
+
+  async approveConversationWhatsApp(conversationId) {
+    return await _post(`/conversations/${conversationId}/whatsapp/approve`);
+  },
+
+  async reportUser(conversationId, reason = '', details = '') {
+    return await _post(`/conversations/${conversationId}/report`, { reason, details });
+  },
+
+  async blockUser(conversationId) {
+    return await _post(`/conversations/${conversationId}/block`);
+  },
+
+  // ── WISHLIST ──
 
   async toggleWishlist(bookId) {
     return window.BookDB ? window.BookDB.toggleWishlist(bookId) : false;
@@ -430,5 +475,15 @@ window.BookAPI = {
 
   async getWishlistBooks() {
     return window.BookDB ? window.BookDB.getWishlistBooks() : [];
+  },
+
+  // ── REVIEWS / USER REMOVAL (previously called by app.js but not defined -> TypeError) ──
+
+  async addReview(sellerEmail, rating, comment) {
+    return window.BookDB ? window.BookDB.addReview(sellerEmail, rating, comment) : null;
+  },
+
+  async deleteUser(userId) {
+    return window.BookDB ? window.BookDB.deleteUser(userId) : null;
   }
 };

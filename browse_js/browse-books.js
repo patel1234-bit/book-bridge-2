@@ -1,5 +1,5 @@
 /* ==========================================
-   BookBridgee - Main Browse JavaScript
+   BookBridge - Main Browse JavaScript
 ========================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -47,19 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function syncBrowseNavUser() {
     const navActions = document.getElementById("browseNavActions");
-    const mobileActions = document.getElementById("mobileDrawerActions");
-
-    // Initialize Mobile Menu Drawer
-    const mobileToggle = document.getElementById("mobileMenuToggle");
-    const mobileDrawer = document.getElementById("mobileNavDrawer");
-    if (mobileToggle && mobileDrawer && !mobileToggle.dataset.bound) {
-        mobileToggle.dataset.bound = "true";
-        mobileToggle.addEventListener("click", () => {
-            const isOpen = mobileDrawer.classList.toggle("open");
-            mobileToggle.setAttribute("aria-expanded", isOpen);
-        });
-    }
-
     if (!navActions) return;
 
     try {
@@ -68,36 +55,18 @@ function syncBrowseNavUser() {
             const rawName = currentUser.name || currentUser.email.split('@')[0];
             const safeName = typeof escapeHTML === 'function' ? escapeHTML(rawName) : (window.escapeHTML ? window.escapeHTML(rawName) : String(rawName).replace(/</g, '&lt;'));
             navActions.innerHTML = `
-                <div class="lang-selector">
-                    <button class="lang-select-btn" title="Change Language"><i class="fa-solid fa-globe"></i> <span>EN</span></button>
+                <div class="d-flex align-items-center gap-2">
+                    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" class="d-none d-sm-inline">
+                        <i class="fa-solid fa-user-circle me-1"></i> ${safeName}
+                    </span>
+                    <a href="dashboard.html" class="btn btn-ghost btn-sm">
+                        <i class="fa-solid fa-gauge me-1"></i> Dashboard
+                    </a>
+                    <button id="btnBrowseLogout" class="btn btn-ghost btn-sm" title="Log Out">
+                        Logout
+                    </button>
                 </div>
-                <div class="nav-user-badge">
-                    <i class="fa-solid fa-circle-user"></i> <span>${safeName}</span>
-                </div>
-                <a href="dashboard.html" class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:6px;height:40px;">
-                    <i class="fa-solid fa-gauge"></i> Dashboard
-                </a>
-                <button id="btnBrowseLogout" class="btn btn-logout" title="Log Out">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-                </button>
             `;
-
-            if (mobileActions) {
-                mobileActions.innerHTML = `
-                    <div style="font-size: 13px; font-weight: 600; color: var(--color-primary); padding: 8px 0; display:flex; align-items:center; gap:6px;">
-                        <i class="fa-solid fa-circle-user"></i> ${safeName}
-                    </div>
-                    <a href="sell.html" class="btn btn-primary btn-block"><i class="fa-solid fa-tag me-1"></i> Sell a Book</a>
-                    <a href="dashboard.html" class="btn btn-ghost btn-block" style="margin-bottom:8px;text-decoration:none;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
-                    <button id="btnMobileBrowseLogout" class="btn btn-secondary btn-block"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Logout</button>
-                `;
-                document.getElementById("btnMobileBrowseLogout")?.addEventListener("click", () => {
-                    localStorage.removeItem("rcti_gtu_current_user");
-                    localStorage.removeItem("bb_access_token");
-                    localStorage.removeItem("bb_refresh_token");
-                    window.location.reload();
-                });
-            }
 
             document.getElementById("btnBrowseLogout")?.addEventListener("click", () => {
                 localStorage.removeItem("rcti_gtu_current_user");
@@ -262,11 +231,11 @@ async function loadLiveBooksFromAPI() {
                 const sellerData = ab.seller || (ab.seller_details ? {
                     name: ab.seller_details.full_name || ab.seller_name || "Student Seller",
                     email: ab.seller_details.email || "student@rcti.ac.in",
-                    whatsapp: ab.seller_details.whatsapp || "+919876543210"
+                    whatsapp: ab.seller_details.whatsapp || ""
                 } : {
                     name: ab.seller_name || "Student Seller",
                     email: "student@rcti.ac.in",
-                    whatsapp: "+919876543210"
+                    whatsapp: ""
                 });
 
                 const normalized = {

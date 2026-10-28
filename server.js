@@ -18,9 +18,11 @@ const { seedDatabase } = require('./config/seed');
 
 // Security & Middleware
 const { configureSecurity } = require('./middleware/security');
-const { authenticateToken, authorizeRoles } = require('./middleware/authMiddleware');
+const { authenticateToken, optionalAuth, authorizeRoles } = require('./middleware/authMiddleware');
 const {
   validateBookInput,
+  validateBookUpdate,
+  validateProfileUpdate,
   validateRegisterInput,
   validateLoginInput,
   validateForgotPasswordInput,
@@ -42,8 +44,8 @@ const { JWT_SECRET } = require('./config/secret');
 
 // 1. Initialize Core Middleware & Security
 app.set('trust proxy', 1);
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.json({ limit: '10mb' })); // 5MB image becomes ~6.7MB as base64
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 configureSecurity(app);
 
 // 2. Initialize Socket.IO with Token Authentication
@@ -84,8 +86,17 @@ try {
 
     // Join conversation room with participant verification
     socket.on('joinConversation', async (conversationId) => {
-      if (!conversationId) return;
-      socket.join(`conversation_${conversationId}`);
+      if (!conversationId || !socket.user) return;
+      try {
+        const { Conversation } = require('./models');
+        const conv = Conversation ? await Conversation.findByPk(conversationId) : null;
+        if (!conv) return;
+        const uid = socket.user.id;
+        if (conv.user1Id !== uid && conv.user2Id !== uid && socket.user.role !== 'admin') return;
+        socket.join(`conversation_${conversationId}`);
+      } catch (e) {
+        console.warn('[Socket.IO] joinConversation check failed:', e.message);
+      }
     });
 
     socket.on('leaveConversation', (conversationId) => {
@@ -96,12 +107,16 @@ try {
 
     // Real-time typing indicators
     socket.on('typing', ({ conversationId, isTyping }) => {
+      const room = `conversation_${conversationId}`;
       if (conversationId && socket.user) {
-        socket.to(`conversation_${conversationId}`).emit('userTyping', {
+        if (!socket.rooms.has(room)) {
+          socket.join(room);
+        }
+        socket.to(room).emit('userTyping', {
           conversationId,
           userId: socket.user.id,
           userName: socket.user.name,
-          isTyping
+          isTyping: Boolean(isTyping)
         });
       }
     });
@@ -133,7 +148,18 @@ const serveStaticFile = (res, filename) => {
 };
 
 // 4. Serve Static Assets (CSS, JS, Images, Icons)
+// Never serve backend source, secrets, databases or dot-files from the project root
+const BLOCKED_STATIC = /^\/(\.|config\/|controllers\/|middleware\/|models\/|backend\/|data\/|tests\/|node_modules\/|\.git|\.env|server\.js|asgi\.py|wsgi\.py|manage\.py|tests\.py|package(-lock)?\.json|requirements\.txt|Dockerfile|docker-compose\.yml|pm2\.config\.js|server\.ps1|run-server\.bat)|\.(sqlite3?|sqlite-journal|py|sql|env|ps1|bat)$/i;
+app.use((req, res, next) => {
+  let p = req.path;
+  try { p = decodeURIComponent(p); } catch (e) { return res.status(400).end(); }
+  if (BLOCKED_STATIC.test(p) || p.includes('..')) {
+    return res.status(404).send('Not found');
+  }
+  next();
+});
 app.use(express.static(process.cwd(), {
+  dotfiles: 'deny',
   maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
   etag: true
 }));
@@ -182,20 +208,33 @@ app.get(['/api/ping', '/ping'], (req, res) => {
 // 7. Platform Statistics (Computed live from Database)
 app.get(['/api/statistics', '/api/statistics/'], bookController.getStatistics);
 
+
+// WhatsApp endpoint rate limiter (10 per minute)
+let rateLimit = null;
+try { rateLimit = require('express-rate-limit'); } catch (e) {}
+const whatsappRateLimiter = rateLimit ? rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 10,
+  message: { error: 'Too many WhatsApp requests. Limit is 10 per minute.', status: 429 },
+  standardHeaders: true,
+  legacyHeaders: false
+}) : (req, res, next) => next();
+
 // 8. Authentication & Password Reset Endpoints
 app.post(['/api/register', '/api/auth/register'], validateRegisterInput, authController.register);
 app.post(['/api/login', '/api/auth/login'], validateLoginInput, authController.login);
 app.get(['/api/auth/me', '/api/users/profile'], authenticateToken, authController.getMe);
-app.put('/api/users/profile', authenticateToken, authController.updateProfile);
+app.put('/api/users/profile', authenticateToken, validateProfileUpdate, authController.updateProfile);
 app.post('/api/auth/forgot-password', validateForgotPasswordInput, authController.forgotPassword);
 app.get('/api/auth/verify-reset-token/:token', authController.verifyResetToken);
 app.post('/api/auth/reset-password', validateResetPasswordInput, authController.resetPassword);
 
 // 9. Book / Textbook Endpoints
-app.get('/api/books', bookController.getBooks);
-app.get('/api/books/:id', bookController.getBookById);
+app.get('/api/books', optionalAuth, bookController.getBooks);
+app.get('/api/books/:id', optionalAuth, bookController.getBookById);
 app.post('/api/books', authenticateToken, validateBookInput, (req, res, next) => bookController.createBook(req, res, next, io));
-app.put('/api/books/:id', authenticateToken, validateBookInput, (req, res, next) => bookController.updateBook(req, res, next, io));
+app.put('/api/books/:id', authenticateToken, validateBookUpdate, (req, res, next) => bookController.updateBook(req, res, next, io));
+app.patch(['/api/books/:id/status', '/api/books/:id'], authenticateToken, validateBookUpdate, (req, res, next) => bookController.updateBook(req, res, next, io));
 app.delete('/api/books/:id', authenticateToken, (req, res, next) => bookController.deleteBook(req, res, next, io));
 
 // 10. Persistent Real-Time Chat & Messaging Endpoints
@@ -203,10 +242,17 @@ app.get('/api/conversations', authenticateToken, chatController.getConversations
 app.post('/api/conversations', authenticateToken, chatController.getOrCreateConversation);
 app.get('/api/conversations/:id/messages', authenticateToken, chatController.getMessages);
 app.post('/api/conversations/:id/messages', authenticateToken, validateMessageInput, (req, res, next) => chatController.sendMessage(req, res, next, io));
+app.get('/api/conversations/:id/whatsapp', authenticateToken, whatsappRateLimiter, chatController.getConversationWhatsApp);
+app.post(['/api/conversations/:id/whatsapp/approve', '/api/conversations/:id/share-whatsapp'], authenticateToken, (req, res, next) => chatController.approveConversationWhatsApp(req, res, next, io));
+app.post(['/api/conversations/:id/report', '/api/users/report'], authenticateToken, chatController.reportUser);
+app.post(['/api/conversations/:id/block', '/api/users/block'], authenticateToken, chatController.blockUser);
+
+app.get('/api/notifications', authenticateToken, chatController.getNotifications);
+app.put('/api/notifications/read', authenticateToken, chatController.markNotificationsRead);
 
 // Legacy Messaging API support (backward compatibility for existing frontend)
 app.get('/api/messages', authenticateToken, chatController.getLegacyMessages);
-app.post('/api/messages', authenticateToken, (req, res, next) => chatController.sendLegacyMessage(req, res, next, io));
+app.post('/api/messages', authenticateToken, validateMessageInput, (req, res, next) => chatController.sendLegacyMessage(req, res, next, io));
 
 // 11. Admin Endpoints (RBAC Enforced: Only Role 'admin')
 app.get('/api/admin/stats', authenticateToken, authorizeRoles('admin'), adminController.getStats);

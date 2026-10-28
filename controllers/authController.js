@@ -48,7 +48,7 @@ function formatSafeUser(user) {
  */
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, enrollment, branch, semester, division, academicYear, whatsapp, role } = req.body;
+    const { name, email, password, enrollment, branch, semester, division, academicYear, whatsapp, role, whatsappPrivacy, whatsappConsent } = req.body;
 
     const normalizedEmail = (email || '').trim().toLowerCase();
 
@@ -87,7 +87,9 @@ exports.register = async (req, res, next) => {
       semester: semester ? parseInt(semester, 10) : 1,
       division: division || 'Div A',
       academicYear: academicYear || '2025-2026',
-      whatsapp: whatsapp ? whatsapp.trim() : '',
+      whatsapp: whatsapp || '',
+      whatsappPrivacy: whatsappPrivacy || 'share after I approve',
+      whatsappConsent: Boolean(whatsappConsent),
       role: (role && ['faculty', 'student'].includes(role.toLowerCase())) ? role.toLowerCase() : 'student',
       isActive: true
     });
@@ -232,10 +234,12 @@ exports.updateProfile = async (req, res, next) => {
       return res.status(404).json({ error: 'User account not found.' });
     }
 
-    const { name, whatsapp, branch, semester, division, academicYear } = req.body;
+    const { name, whatsapp, branch, semester, division, academicYear, whatsappPrivacy, whatsappConsent } = req.body;
 
     if (name && name.trim()) user.name = name.trim();
-    if (whatsapp !== undefined) user.whatsapp = whatsapp.trim();
+    if (whatsapp !== undefined) user.whatsapp = whatsapp;
+    if (whatsappPrivacy !== undefined) user.whatsappPrivacy = whatsappPrivacy;
+    if (whatsappConsent !== undefined) user.whatsappConsent = Boolean(whatsappConsent);
     if (branch) user.branch = branch;
     if (semester) user.semester = parseInt(semester, 10);
     if (division) user.division = division;
@@ -265,30 +269,9 @@ exports.forgotPassword = async (req, res, next) => {
     // Look up user
     const user = await User.findOne({ where: { email: normalizedEmail } });
 
-    // Direct password reset if new_password is provided
-    if (newPass) {
-      if (!user) {
-        return res.status(404).json({
-          error: `No account found with email "${normalizedEmail}". Please create an account.`,
-          status: 404
-        });
-      }
-      if (newPass.length < 6) {
-        return res.status(400).json({
-          error: 'Password must be at least 6 characters long.',
-          status: 400
-        });
-      }
-      const hashedPassword = await bcrypt.hash(newPass, 12);
-      user.password = hashedPassword;
-      user.isActive = true;
-      await user.save();
-      return res.json({
-        status: 200,
-        message: `Password for ${user.email} updated successfully! You can now log in.`,
-        updated: true
-      });
-    }
+    // SECURITY: a password is never changed here without proof of mailbox ownership.
+    // Any supplied new password is ignored; the single-use emailed token flow below is the only reset path.
+    void newPass;
 
     if (user && user.isActive) {
       // Invalidate any previously active tokens for this user
@@ -376,7 +359,8 @@ exports.verifyResetToken = async (req, res, next) => {
  */
 exports.resetPassword = async (req, res, next) => {
   try {
-    const { token, newPassword } = req.body;
+    const { token } = req.body;
+    const newPassword = req.body.newPassword || req.body.new_password || req.body.password;
 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const resetRecord = await PasswordResetToken.findOne({

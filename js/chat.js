@@ -85,7 +85,7 @@
     fab.setAttribute('aria-label', 'Open BookBridgee Chat');
     fab.title = 'Chat with Students (Buy · Sell · Exchange · Donate)';
     fab.innerHTML = `
-      <span class="bb-chat-fab-icon">💬</span>
+      <span class="bb-chat-fab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
       <span id="bbChatFabBadge" class="bb-chat-fab-badge" style="display: none;">0</span>
     `;
     fab.addEventListener('click', () => window.toggleChatDrawer());
@@ -112,7 +112,7 @@
           </div>
         </div>
         <div class="bb-chat-header-actions">
-          <a id="bbChatWhatsappBtn" href="#" target="_blank" class="bb-chat-icon-btn whatsapp" title="Chat on WhatsApp" style="display: none;">
+          <a id="bbChatWhatsappBtn" href="#" class="bb-chat-icon-btn whatsapp" title="Continue on WhatsApp (needs their approval)" style="display: none;">
             📱
           </a>
           <button id="bbChatCloseBtn" class="bb-chat-icon-btn" title="Close Chat">
@@ -124,7 +124,7 @@
       <!-- Active Deal Context Banner -->
       <div id="bbDealBanner" class="bb-deal-banner" style="display: none;">
         <div class="bb-deal-banner-top">
-          <img id="bbDealThumb" src="" alt="Book" class="bb-deal-cover-thumb">
+          <img id="bbDealThumb" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f1f5f9'/%3E%3Ctext x='50' y='55' font-size='20' text-anchor='middle' fill='%2394a3b8'%3E📚%3C/text%3E%3C/svg%3E" alt="Book" class="bb-deal-cover-thumb">
           <div class="bb-deal-info">
             <div id="bbDealTitle" class="bb-deal-title">Book Title</div>
             <div class="bb-deal-badge-row">
@@ -161,6 +161,12 @@
 
       <!-- CONVERSATION VIEW -->
       <div id="bbConvoView" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
+        <!-- WhatsApp consent bar -->
+        <div id="bbWaBar" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid #E2E8F0; background: #F0FDF4; font-size: 12px;">
+          <span id="bbWaStatus" style="flex: 1; min-width: 140px; color: #166534;">WhatsApp is shared only with approval.</span>
+          <button type="button" id="bbShareWaBtn" style="border: 1px solid #25D366; background: #fff; color: #166534; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer;">📱 Share my WhatsApp</button>
+          <button type="button" id="bbContinueWaBtn" disabled style="border: 0; background: #25D366; color: #fff; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; opacity: 0.6;">Continue on WhatsApp</button>
+        </div>
         <!-- Messages Stream -->
         <div id="bbChatMessages" class="bb-chat-messages">
           <!-- Bubbles -->
@@ -210,6 +216,36 @@
     // Custom deal submit
     document.getElementById('bbDealCustomSubmit').addEventListener('click', handleDealCustomSubmit);
 
+    // Real-time typing debounce
+    let typingDebounce = null;
+    const chatInput = document.getElementById('bbChatInput');
+    chatInput?.addEventListener('input', () => {
+      if (window.__bbChatSocket && activePartner && activePartner.conversationId) {
+        try {
+          window.__bbChatSocket.emit('typing', {
+            conversationId: activePartner.conversationId,
+            isTyping: true
+          });
+        } catch (e) {}
+        clearTimeout(typingDebounce);
+        typingDebounce = setTimeout(() => {
+          if (window.__bbChatSocket && activePartner && activePartner.conversationId) {
+            try {
+              window.__bbChatSocket.emit('typing', {
+                conversationId: activePartner.conversationId,
+                isTyping: false
+              });
+            } catch (e) {}
+          }
+        }, 1200);
+      }
+    });
+
+    document.getElementById('bbShareWaBtn')?.addEventListener('click', handleShareWhatsApp);
+    document.getElementById('bbContinueWaBtn')?.addEventListener('click', handleContinueWhatsApp);
+    document.getElementById('bbReportUserBtn')?.addEventListener('click', handleReportUser);
+    document.getElementById('bbBlockUserBtn')?.addEventListener('click', handleBlockUser);
+
     // Initial badge update
     updateUnreadBadge();
   }
@@ -244,8 +280,229 @@
     }
   };
 
+
+  // Real mode = logged in against the backend (token present). Otherwise the offline demo storage is used.
+  function isServerMode() {
+    return Boolean(localStorage.getItem('bb_access_token')) && Boolean(window.BookAPI);
+  }
+
+  // Messages from the server -> the shape the chat renderer expects
+  async function fetchServerMessages() {
+    const me = getCurrentUser();
+    if (!me || !activePartner) return [];
+    let raw = [];
+    try {
+      const convId = await ensureActiveConversation();
+      raw = convId
+        ? await window.BookAPI.getConversationMessages(convId)
+        : await window.BookAPI.getMessages(activePartner.email);
+    } catch (err) {
+      raw = [];
+    }
+    const myEmail = String(me.email || '').toLowerCase();
+    return (Array.isArray(raw) ? raw : []).map(m => ({
+      ...m,
+      timestamp: m.timestamp || m.createdAt,
+      read: m.read !== undefined ? m.read : Boolean(m.isRead),
+      receiverEmail: m.receiverEmail || (String(m.senderEmail || '').toLowerCase() === myEmail ? activePartner.email : me.email),
+      bookTitle: m.bookTitle || ''
+    }));
+  }
+
+  // Conversation list from the server -> the shape the inbox renderer expects
+  async function fetchServerConversations() {
+    let list = [];
+    try { list = await window.BookAPI.getConversations(); } catch (err) { list = []; }
+    if (!Array.isArray(list)) return [];
+    return list
+      .map(c => c.otherUser ? ({
+        partnerEmail: c.otherUser.email,
+        partnerName: c.otherUser.name,
+        lastMessage: c.lastMessageText || '',
+        lastTimestamp: c.lastMessageAt,
+        bookTitle: (c.book && c.book.title) || '',
+        bookId: c.bookId || '',
+        mode: (c.book && c.book.mode) || 'sell',
+        unreadCount: Number(c.unreadCount) || 0
+      }) : c)
+      .filter(c => c.lastMessage);
+  }
+
+  function paintUnreadBadge() {
+    const badge = document.getElementById('bbChatFabBadge');
+    if (badge) {
+      if (unreadTotal > 0) {
+        badge.textContent = unreadTotal > 9 ? '9+' : unreadTotal;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    const dashBadge = document.getElementById('msgsBadge');
+    if (dashBadge) {
+      if (unreadTotal > 0) {
+        dashBadge.textContent = unreadTotal;
+        dashBadge.style.display = 'inline-flex';
+      } else {
+        dashBadge.style.display = 'none';
+      }
+    }
+  }
+
+  async function refreshServerUnread() {
+    try {
+      const list = await window.BookAPI.getConversations();
+      if (Array.isArray(list)) {
+        unreadTotal = list.reduce((n, c) => n + (Number(c.unreadCount) || 0), 0);
+      }
+    } catch (err) { /* keep previous count */ }
+    paintUnreadBadge();
+  }
+
+  // Resolve (or create) the server-side conversation so the consent endpoints can be used
+  async function ensureActiveConversation() {
+    if (!activePartner) return null;
+    if (activePartner.conversationId) return activePartner.conversationId;
+    if (!window.BookAPI || typeof window.BookAPI.getOrCreateConversation !== 'function') return null;
+    if (!localStorage.getItem('bb_access_token')) return null;
+    try {
+      const bookId = activeDeal && /^\d+$/.test(String(activeDeal.bookId || '')) ? Number(activeDeal.bookId) : undefined;
+      const recipientId = activePartner.id && /^\d+$/.test(String(activePartner.id)) ? Number(activePartner.id) : undefined;
+      const conv = await window.BookAPI.getOrCreateConversation(recipientId, activePartner.email, bookId);
+      if (conv && conv.id) {
+        activePartner.conversationId = conv.id;
+        return conv.id;
+      }
+    } catch (err) {
+      console.warn('[Chat] Could not open server conversation:', err.message || err);
+    }
+    return null;
+  }
+
+  // Sync the WhatsApp consent bar with the server state (booleans only, no numbers)
+  async function refreshWhatsAppState() {
+    const bar = document.getElementById('bbWaBar');
+    const headerBtn = document.getElementById('bbChatWhatsappBtn');
+    const status = document.getElementById('bbWaStatus');
+    const shareBtn = document.getElementById('bbShareWaBtn');
+    const contBtn = document.getElementById('bbContinueWaBtn');
+    if (!bar) return;
+    const convId = await ensureActiveConversation();
+    if (!convId) {
+      bar.style.display = 'none';
+      if (headerBtn) headerBtn.style.display = 'none';
+      return;
+    }
+    let mine = false;
+    let partner = false;
+    try {
+      const list = await window.BookAPI.getConversations();
+      const conv = Array.isArray(list) ? list.find(c => String(c.id) === String(convId)) : null;
+      if (conv) {
+        mine = Boolean(conv.iApprovedWhatsapp);
+        partner = Boolean(conv.partnerApprovedWhatsapp);
+      }
+    } catch (err) { /* keep defaults */ }
+    bar.style.display = 'flex';
+    if (headerBtn) headerBtn.style.display = 'flex';
+    if (shareBtn) {
+      shareBtn.textContent = mine ? '✓ WhatsApp shared' : '📱 Share my WhatsApp';
+      shareBtn.disabled = mine;
+      shareBtn.style.opacity = mine ? '0.7' : '1';
+    }
+    if (contBtn) {
+      contBtn.disabled = !partner;
+      contBtn.style.opacity = partner ? '1' : '0.6';
+    }
+    if (status) {
+      status.textContent = partner
+        ? 'They shared their WhatsApp. Tap Continue to chat.'
+        : (mine ? 'You shared yours. Waiting for them to share theirs.' : 'WhatsApp is shared only with approval.');
+    }
+  }
+
+  async function handleShareWhatsApp() {
+    if (!activePartner || !(await ensureActiveConversation())) {
+      if (typeof showToast === 'function') showToast('Please select or open a conversation first', 'warning');
+      return;
+    }
+    const btn = document.getElementById('bbShareWaBtn');
+    try {
+      if (window.BookAPI && typeof window.BookAPI.approveConversationWhatsApp === 'function') {
+        await window.BookAPI.approveConversationWhatsApp(activePartner.conversationId);
+      }
+      if (typeof showToast === 'function') showToast('You approved sharing your WhatsApp for this conversation!', 'success');
+      if (btn) {
+        btn.textContent = '✓ WhatsApp Shared';
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+      }
+      refreshWhatsAppState();
+    } catch (err) {
+      if (typeof showToast === 'function') showToast(err.message || 'Could not approve WhatsApp', 'danger');
+    }
+  }
+
+  async function handleContinueWhatsApp() {
+    if (!activePartner || !(await ensureActiveConversation())) {
+      if (typeof showToast === 'function') showToast('Please select or open a conversation first', 'warning');
+      return;
+    }
+    try {
+      if (window.BookAPI && typeof window.BookAPI.getConversationWhatsApp === 'function') {
+        const data = await window.BookAPI.getConversationWhatsApp(activePartner.conversationId);
+        const rawNum = data?.whatsapp || data?.whatsappNumber;
+        if (rawNum) {
+          let digits = String(rawNum).replace(/[^0-9]/g, '');
+          if (digits.length === 10) digits = '91' + digits;
+          const bookTitle = activeDeal?.bookTitle || 'your textbook';
+          const msg = `Hi ${activePartner.name || ''}! I am contacting you from BookBridge regarding "${bookTitle}".`;
+          const url = `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+          const opened = window.open(url, '_blank');
+          if (!opened) window.location.href = url;
+          return;
+        }
+      }
+      if (typeof showToast === 'function') showToast('Could not retrieve verified WhatsApp number', 'warning');
+    } catch (err) {
+      const msg = err.data?.error || err.message || 'WhatsApp sharing has not been approved yet.';
+      if (typeof showToast === 'function') showToast(msg, 'warning');
+    }
+  }
+
+  async function handleReportUser() {
+    if (!activePartner || !activePartner.conversationId) return;
+    const reason = prompt(`Reason for reporting ${activePartner.name}:`);
+    if (!reason || !reason.trim()) return;
+    try {
+      if (window.BookAPI && typeof window.BookAPI.reportUser === 'function') {
+        await window.BookAPI.reportUser(activePartner.conversationId, reason.trim());
+      }
+      if (typeof showToast === 'function') showToast('User report submitted to campus moderation.', 'success');
+    } catch (err) {
+      if (typeof showToast === 'function') showToast(err.message || 'Report failed', 'danger');
+    }
+  }
+
+  async function handleBlockUser() {
+    if (!activePartner || !activePartner.conversationId) return;
+    if (!confirm(`Are you sure you want to block ${activePartner.name}?`)) return;
+    try {
+      if (window.BookAPI && typeof window.BookAPI.blockUser === 'function') {
+        await window.BookAPI.blockUser(activePartner.conversationId);
+      }
+      if (typeof showToast === 'function') showToast('User has been blocked.', 'info');
+      showInboxView();
+    } catch (err) {
+      if (typeof showToast === 'function') showToast(err.message || 'Block failed', 'danger');
+    }
+  }
+
   // Switch to Inbox View
   function showInboxView() {
+    if (window.__bbChatSocket && activePartner && activePartner.conversationId) {
+      try { window.__bbChatSocket.emit('leaveConversation', activePartner.conversationId); } catch (e) {}
+    }
     activePartner = null;
     activeDeal = null;
 
@@ -278,7 +535,9 @@
     if (!listContainer) return;
 
     let convos = [];
-    if (window.BookDB && typeof window.BookDB.getUserConversations === 'function') {
+    if (isServerMode()) {
+      convos = await fetchServerConversations();
+    } else if (window.BookDB && typeof window.BookDB.getUserConversations === 'function') {
       convos = await window.BookDB.getUserConversations();
     } else {
       const user = getCurrentUser();
@@ -340,16 +599,16 @@
     listContainer.innerHTML = convos.map(c => {
       const initials = getInitials(c.partnerName);
       const timeStr = formatTime(c.lastTimestamp);
-      const bookPrefix = c.bookTitle ? `📖 <strong>${c.bookTitle}</strong>: ` : '';
+      const bookPrefix = c.bookTitle ? `📖 <strong>${escapeHTML(c.bookTitle)}</strong>: ` : '';
       return `
-        <div class="bb-inbox-item ${c.unreadCount > 0 ? 'unread' : ''}" data-email="${c.partnerEmail}" data-name="${c.partnerName}">
+        <div class="bb-inbox-item ${c.unreadCount > 0 ? 'unread' : ''}" data-email="${escapeHTML(c.partnerEmail)}" data-name="${escapeHTML(c.partnerName)}">
           <div class="bb-chat-avatar" style="width: 36px; height: 36px; font-size: 13px;">${initials}</div>
           <div class="bb-inbox-item-content">
             <div class="bb-inbox-item-top">
-              <span class="bb-inbox-item-name">${c.partnerName}</span>
+              <span class="bb-inbox-item-name">${escapeHTML(c.partnerName)}</span>
               <span class="bb-inbox-item-time">${timeStr}</span>
             </div>
-            <div class="bb-inbox-item-preview">${bookPrefix}${c.lastMessage}</div>
+            <div class="bb-inbox-item-preview">${bookPrefix}${escapeHTML(c.lastMessage)}</div>
           </div>
           ${c.unreadCount > 0 ? `<div class="bb-inbox-unread-badge">${c.unreadCount}</div>` : ''}
         </div>
@@ -393,9 +652,10 @@
 
     const receiverEmail = options.receiverEmail || 'student@rcti.ac.in';
     const receiverName = options.receiverName || 'Student';
-    const receiverPhone = options.receiverPhone || '+919876543210';
+    const receiverPhone = ''; // numbers are never taken from the client; WhatsApp is unlocked via the consent endpoint
 
     activePartner = {
+      id: options.receiverId || undefined,
       email: receiverEmail,
       name: receiverName,
       phone: receiverPhone,
@@ -459,15 +719,23 @@
     if (convoView) convoView.style.display = 'flex';
 
     if (userName) userName.textContent = activePartner.name;
-    if (userStatus) userStatus.textContent = `Online · ${activePartner.branch || 'Student'}`;
+    if (userStatus) userStatus.textContent = activePartner.branch || 'Student';
     if (avatar) avatar.textContent = getInitials(activePartner.name);
 
     if (waBtn) {
-      const cleanPhone = (activePartner.phone || '+919876543210').replace(/[^0-9]/g, '');
-      const dealText = activeDeal?.bookTitle ? ` regarding "${activeDeal.bookTitle}"` : '';
-      waBtn.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi ${activePartner.name}, I'm reaching out on BookBridgee${dealText}!`)}`;
-      waBtn.style.display = 'flex';
+      // Never link straight to a number: go through the consent-gated handler
+      waBtn.href = '#';
+      waBtn.onclick = (ev) => { ev.preventDefault(); handleContinueWhatsApp(); };
+      waBtn.style.display = 'none'; // shown by refreshWhatsAppState once a server conversation exists
     }
+    refreshWhatsAppState();
+
+    // Join conversation room in Socket.IO for real-time delivery
+    ensureActiveConversation().then((cid) => {
+      if (cid && window.__bbChatSocket) {
+        try { window.__bbChatSocket.emit('joinConversation', cid); } catch (e) {}
+      }
+    });
 
     // Render Deal Context Banner
     renderDealBanner();
@@ -681,7 +949,9 @@
     if (!stream || !activePartner) return;
 
     let msgs = [];
-    if (window.BookDB && typeof window.BookDB.getMessages === 'function') {
+    if (isServerMode()) {
+      msgs = await fetchServerMessages();
+    } else if (window.BookDB && typeof window.BookDB.getMessages === 'function') {
       msgs = await window.BookDB.getMessages(activePartner.email);
     } else {
       const currentUser = getCurrentUser();
@@ -695,6 +965,11 @@
         );
       }
     }
+
+    // Skip re-rendering when nothing changed (keeps scroll position stable while polling)
+    const streamSig = activePartner.email + '|' + msgs.length + '|' + (msgs.length ? msgs[msgs.length - 1].id : '') + '|' + msgs.filter(m => m.read).length;
+    if (stream.dataset.sig === streamSig) return;
+    stream.dataset.sig = streamSig;
 
     if (msgs.length === 0) {
       stream.innerHTML = `
@@ -725,7 +1000,7 @@
               ${hasCard ? `
                 <div class="bb-msg-card-attachment">
                   <span>📖</span>
-                  <span><strong>${m.bookTitle}</strong> · Deal Inquiry</span>
+                  <span><strong>${escapeHTML(m.bookTitle)}</strong> · Deal Inquiry</span>
                 </div>
               ` : ''}
               ${escapeHTML(m.text)}
@@ -766,6 +1041,15 @@
   async function sendChatMessage(text, extra = {}) {
     if (!activePartner || !text) return;
 
+    if (window.__bbChatSocket && activePartner.conversationId) {
+      try {
+        window.__bbChatSocket.emit('typing', {
+          conversationId: activePartner.conversationId,
+          isTyping: false
+        });
+      } catch (e) {}
+    }
+
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
@@ -780,8 +1064,25 @@
       ...extra
     };
 
+    // Real mode: send through the conversation endpoint so both users share one thread
+    let sentViaServer = false;
+    if (isServerMode()) {
+      const convId = await ensureActiveConversation();
+      if (convId) {
+        try {
+          await window.BookAPI.sendConversationMessage(convId, text);
+          sentViaServer = true;
+        } catch (err) {
+          if (typeof showToast === 'function') showToast((err && err.message) || 'Message could not be sent', 'danger');
+          return;
+        }
+      }
+    }
+
     // Send through API / Local DB
-    if (window.BookAPI && typeof window.BookAPI.sendMessage === 'function') {
+    if (sentViaServer) {
+      // already delivered by the server
+    } else if (window.BookAPI && typeof window.BookAPI.sendMessage === 'function') {
       await window.BookAPI.sendMessage(activePartner.email, text, activeDeal?.bookTitle || '', msgPayload);
     } else if (window.BookDB && typeof window.BookDB.sendMessage === 'function') {
       await window.BookDB.sendMessage(activePartner.email, text, activeDeal?.bookTitle || '', msgPayload);
@@ -811,6 +1112,7 @@
 
   // Realistic Simulation: If receiver is not logged in, simulate reply after delay
   function triggerSimulatedStudentReply(triggerText) {
+    if (isServerMode()) return; // real users reply for themselves; simulation is for offline demo only
     if (simulatedTypingTimeout) clearTimeout(simulatedTypingTimeout);
 
     const partnerEmail = activePartner.email.toLowerCase();
@@ -878,6 +1180,7 @@
   function updateUnreadBadge() {
     const user = getCurrentUser();
     if (!user) return;
+    if (isServerMode()) { refreshServerUnread(); return; }
 
     const all = JSON.parse(localStorage.getItem('rcti_gtu_messages') || '[]');
     const cEmail = user.email.toLowerCase();
@@ -922,6 +1225,96 @@
   window.addEventListener('bookbridge:messages-updated', () => {
     updateUnreadBadge();
   });
+
+  // Poll for incoming messages while logged in (real mode only)
+  setInterval(() => {
+    if (!isServerMode() || !getCurrentUser() || document.hidden) return;
+    updateUnreadBadge();
+    const drawer = document.getElementById('bookBridgeChatDrawer');
+    if (!drawer || !drawer.classList.contains('open')) return;
+    if (activePartner) loadMessagesStream();
+    else renderInboxList();
+  }, 5000);
+
+  // Real-time delivery: connect to the server's Socket.IO and reuse the existing refresh event.
+  // Polling above stays as the fallback if the socket is unavailable.
+  function initRealtimeSocket() {
+    try {
+      const token = localStorage.getItem('bb_access_token');
+      if (!token) return;
+      if (window.__bbChatSocket && window.__bbChatSocket.connected) return;
+
+      const connect = () => {
+        if (typeof window.io !== 'function') return;
+        if (window.__bbChatSocket) {
+          try { window.__bbChatSocket.disconnect(); } catch (e) {}
+        }
+        const sock = window.io({ auth: { token }, transports: ['websocket', 'polling'] });
+        window.__bbChatSocket = sock;
+
+        sock.on('connect', () => {
+          if (activePartner && activePartner.conversationId) {
+            sock.emit('joinConversation', activePartner.conversationId);
+          }
+        });
+
+        const onIncoming = (msg) => {
+          playBeep('receive');
+          window.dispatchEvent(new CustomEvent('bookbridge:new-message', { detail: msg }));
+          updateUnreadBadge();
+          if (activePartner && (String(activePartner.conversationId) === String(msg?.conversationId) || String(activePartner.email).toLowerCase() === String(msg?.senderEmail).toLowerCase())) {
+            loadMessagesStream();
+          } else if (msg && msg.senderName && typeof showToast === 'function') {
+            showToast(`New message from ${msg.senderName}: ${msg.text || ''}`, 'info');
+          }
+        };
+
+        sock.on('chatNotification', (data) => onIncoming(data?.message || data));
+        sock.on('newMessage', onIncoming);
+
+        // Real-time typing indicators from partner
+        sock.on('userTyping', (data) => {
+          if (!data || !activePartner) return;
+          if (String(activePartner.conversationId) === String(data.conversationId)) {
+            const typingEl = document.getElementById('bbTypingIndicator');
+            if (!typingEl) return;
+            const textEl = typingEl.querySelector('span');
+            if (data.isTyping) {
+              if (textEl) textEl.textContent = `${data.userName || 'Student'} is typing`;
+              typingEl.classList.add('active');
+            } else {
+              typingEl.classList.remove('active');
+            }
+          }
+        });
+
+        // Real-time WhatsApp consent approval notification
+        sock.on('whatsappApproved', (data) => {
+          if (activePartner && String(activePartner.conversationId) === String(data?.conversationId)) {
+            refreshWhatsAppState();
+            if (typeof showToast === 'function') {
+              showToast(`${data.approverName || activePartner.name} shared their WhatsApp! You can now continue on WhatsApp.`, 'success');
+            }
+          }
+        });
+      };
+
+      if (typeof window.io === 'function') return connect();
+      const s = document.createElement('script');
+      s.src = '/socket.io/socket.io.js';
+      s.async = true;
+      s.onload = connect;
+      s.onerror = () => {}; // static hosting without a socket server: polling keeps working
+      document.head.appendChild(s);
+    } catch (e) { /* non-fatal */ }
+  }
+
+  window.initChatSocket = initRealtimeSocket;
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'bb_access_token' && e.newValue) initRealtimeSocket();
+  });
+  window.addEventListener('bookbridge:auth-changed', () => initRealtimeSocket());
+  initRealtimeSocket();
 
   // Auto-init on DOMContentLoaded
   if (document.readyState === 'loading') {

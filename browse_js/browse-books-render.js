@@ -193,11 +193,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (typeof window.openBookBridgeeChat === "function") {
-                    const seller = book.seller || { name: `Student (${book.department || 'CE'})`, email: 'student@rcti.ac.in', whatsapp: '+919876543210' };
+                    const seller = book.seller || { name: `Student (${book.department || 'CE'})`, email: 'student@rcti.ac.in', whatsapp: '' };
                     const mode = isFree ? "donate" : (isExchange ? "exchange" : "sell");
                     window.openBookBridgeeChat({
                         receiverEmail: seller.email,
                         receiverName: seller.name,
+                        receiverId: seller.id || book.sellerId || book.userId || undefined,
                         receiverPhone: seller.whatsapp,
                         bookId: book.id,
                         bookTitle: book.title,
@@ -325,13 +326,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (modal) modal.hide();
             }
 
-            const seller = activeViewedBook.seller || { name: `Student (${activeViewedBook.department || 'CE'})`, email: 'student@rcti.ac.in', whatsapp: '+919876543210' };
+            const seller = activeViewedBook.seller || { name: `Student (${activeViewedBook.department || 'CE'})`, email: 'student@rcti.ac.in', whatsapp: '' };
             const mode = isFree ? "donate" : (isExchange ? "exchange" : "sell");
 
             if (typeof window.openBookBridgeeChat === "function") {
                 window.openBookBridgeeChat({
                     receiverEmail: seller.email,
                     receiverName: seller.name,
+                    receiverId: seller.id || activeViewedBook.sellerId || activeViewedBook.userId || undefined,
                     receiverPhone: seller.whatsapp,
                     bookId: activeViewedBook.id,
                     bookTitle: activeViewedBook.title,

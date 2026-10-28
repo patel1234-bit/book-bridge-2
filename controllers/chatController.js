@@ -6,7 +6,7 @@
  */
 
 const { Op } = require('sequelize');
-const { Conversation, Message, User, Book, Notification } = require('../models');
+const { Conversation, Message, User, Book, Notification, AuditLog } = require('../models');
 
 /**
  * GET /api/conversations
@@ -21,8 +21,8 @@ exports.getConversations = async (req, res, next) => {
         [Op.or]: [{ user1Id: currentUserId }, { user2Id: currentUserId }]
       },
       include: [
-        { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
-        { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
+        { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
+        { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
         { model: Book, as: 'book', attributes: ['id', 'title', 'price', 'mode', 'coverUrl', 'status'] }
       ],
       order: [['lastMessageAt', 'DESC']]
@@ -47,6 +47,9 @@ exports.getConversations = async (req, res, next) => {
           bookId: conv.bookId,
           book: conv.book,
           otherUser,
+          // Booleans only - the phone number itself is never included here
+          iApprovedWhatsapp: Boolean(isUser1 ? conv.user1ApprovedWhatsapp : conv.user2ApprovedWhatsapp),
+          partnerApprovedWhatsapp: Boolean(isUser1 ? conv.user2ApprovedWhatsapp : conv.user1ApprovedWhatsapp),
           lastMessageText: conv.lastMessageText,
           lastMessageAt: conv.lastMessageAt,
           unreadCount
@@ -71,7 +74,7 @@ exports.getOrCreateConversation = async (req, res, next) => {
 
     let targetUserId = recipientId;
 
-    if (!targetUserId && recipientEmail) {
+    if (!targetUserId && recipientEmail && typeof recipientEmail === 'string') {
       const targetUser = await User.findOne({ where: { email: recipientEmail.trim().toLowerCase() } });
       if (targetUser) targetUserId = targetUser.id;
     }
@@ -80,8 +83,18 @@ exports.getOrCreateConversation = async (req, res, next) => {
       return res.status(400).json({ error: 'Recipient user ID or email is required.' });
     }
 
-    if (parseInt(targetUserId, 10) === currentUserId) {
+    targetUserId = parseInt(targetUserId, 10);
+    if (isNaN(targetUserId)) {
+      return res.status(400).json({ error: 'Recipient user ID or email is required.' });
+    }
+
+    if (targetUserId === currentUserId) {
       return res.status(400).json({ error: 'You cannot start a conversation with yourself.' });
+    }
+
+    const targetExists = await User.findByPk(targetUserId, { attributes: ['id'] });
+    if (!targetExists) {
+      return res.status(404).json({ error: 'Recipient user account not found.' });
     }
 
     // Check if conversation already exists between these 2 users (optionally for this book)
@@ -99,8 +112,8 @@ exports.getOrCreateConversation = async (req, res, next) => {
     let conversation = await Conversation.findOne({
       where: whereClause,
       include: [
-        { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
-        { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
+        { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
+        { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
         { model: Book, as: 'book', attributes: ['id', 'title', 'price', 'mode', 'coverUrl'] }
       ]
     });
@@ -123,8 +136,8 @@ exports.getOrCreateConversation = async (req, res, next) => {
 
       conversation = await Conversation.findByPk(conversation.id, {
         include: [
-          { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
-          { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role', 'whatsapp'] },
+          { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
+          { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'avatarUrl', 'role'] },
           { model: Book, as: 'book', attributes: ['id', 'title', 'price', 'mode', 'coverUrl'] }
         ]
       });
@@ -155,11 +168,12 @@ exports.getMessages = async (req, res, next) => {
       return res.status(403).json({ error: 'Access denied. You are not a participant in this conversation.' });
     }
 
-    const messages = await Message.findAll({
+    // Newest 100 messages (so long chats still show recent ones), returned oldest -> newest
+    const messages = (await Message.findAll({
       where: { conversationId: id },
-      order: [['createdAt', 'ASC']],
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
       limit: 100
-    });
+    })).reverse();
 
     // Mark messages sent to current user as read
     await Message.update(
@@ -282,11 +296,11 @@ exports.getLegacyMessages = async (req, res, next) => {
       whereClause.conversationId = { [Op.in]: convIds };
     }
 
-    const messages = await Message.findAll({
+    const messages = (await Message.findAll({
       where: whereClause,
-      order: [['createdAt', 'ASC']],
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
       limit: 100
-    });
+    })).reverse();
 
     return res.json(messages);
   } catch (error) {
@@ -301,7 +315,10 @@ exports.sendLegacyMessage = async (req, res, next, io) => {
   try {
     const currentUserId = req.user.id;
     const { receiverEmail, receiver_email, text, bookTitle, book_title, bookId } = req.body;
-    const targetEmail = (receiverEmail || receiver_email || '').trim().toLowerCase();
+    const targetEmail = String(receiverEmail || receiver_email || '').trim().toLowerCase();
+    if (typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Message text cannot be empty.' });
+    }
 
     if (!targetEmail) {
       return res.status(400).json({ error: 'Receiver email is required.' });
@@ -367,6 +384,272 @@ exports.sendLegacyMessage = async (req, res, next, io) => {
       receiver_email: recipient.email,
       receiver_name: recipient.name
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+/**
+ * GET /api/conversations/:id/whatsapp
+ * Privacy-safe WhatsApp phone number retrieval:
+ * - Requester must be a participant
+ * - Other participant must have approved WhatsApp sharing for this conversation
+ * - Other participant must not have set whatsappPrivacy to 'hide'
+ * - Logged in AuditLog
+ */
+exports.getConversationWhatsApp = async (req, res, next) => {
+  try {
+    const conversationId = req.params.id;
+    const currentUserId = req.user.id;
+
+    const conversation = await Conversation.findByPk(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.', status: 404 });
+    }
+
+    const isUser1 = conversation.user1Id === currentUserId;
+    const isUser2 = conversation.user2Id === currentUserId;
+    if (!isUser1 && !isUser2) {
+      return res.status(403).json({
+        error: 'Access denied. You are not a participant in this conversation.',
+        status: 403
+      });
+    }
+
+    const otherUserId = isUser1 ? conversation.user2Id : conversation.user1Id;
+    const isApproved = isUser1 ? conversation.user2ApprovedWhatsapp : conversation.user1ApprovedWhatsapp;
+
+    if (!isApproved) {
+      return res.status(403).json({
+        error: 'WhatsApp sharing has not been approved by this user for this conversation.',
+        status: 403
+      });
+    }
+
+    const otherUser = await User.findByPk(otherUserId);
+    if (!otherUser) {
+      return res.status(404).json({ error: 'User not found.', status: 404 });
+    }
+
+    if (otherUser.whatsappPrivacy === 'hide') {
+      return res.status(403).json({
+        error: 'This user has configured their WhatsApp number to remain hidden.',
+        status: 403
+      });
+    }
+
+    if (!otherUser.whatsapp || otherUser.whatsapp.trim() === '') {
+      return res.status(404).json({
+        error: 'This user has not linked a WhatsApp number.',
+        status: 404
+      });
+    }
+
+    // Log access in AuditLog
+    if (AuditLog) {
+      try {
+        await AuditLog.create({
+          userId: currentUserId,
+          action: 'WHATSAPP_REQUEST',
+          ipAddress: req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          details: `User ${currentUserId} accessed WhatsApp for conversation ${conversationId} (partner user: ${otherUserId})`
+        });
+      } catch (err) {
+        console.warn('[AuditLog] Failed to log WhatsApp retrieval:', err.message);
+      }
+    }
+
+    return res.json({
+      whatsapp: otherUser.whatsapp,
+      whatsappNumber: otherUser.whatsapp,
+      name: otherUser.name
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/conversations/:id/whatsapp/approve
+ * or POST /api/conversations/:id/share-whatsapp
+ * Participant grants consent to share their WhatsApp number in this conversation
+ */
+exports.approveConversationWhatsApp = async (req, res, next, io) => {
+  try {
+    const conversationId = req.params.id;
+    const currentUserId = req.user.id;
+
+    const conversation = await Conversation.findByPk(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.', status: 404 });
+    }
+
+    const isUser1 = conversation.user1Id === currentUserId;
+    const isUser2 = conversation.user2Id === currentUserId;
+    if (!isUser1 && !isUser2) {
+      return res.status(403).json({
+        error: 'Access denied. You are not a participant in this conversation.',
+        status: 403
+      });
+    }
+
+    if (isUser1) {
+      conversation.user1ApprovedWhatsapp = true;
+    } else {
+      conversation.user2ApprovedWhatsapp = true;
+    }
+
+    await conversation.save();
+
+    if (AuditLog) {
+      try {
+        await AuditLog.create({
+          userId: currentUserId,
+          action: 'WHATSAPP_APPROVE',
+          ipAddress: req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          details: `User ${currentUserId} approved WhatsApp sharing for conversation ${conversationId}`
+        });
+      } catch (e) {}
+    }
+
+    // Real-time Socket.IO notification to partner
+    if (io) {
+      const partnerId = isUser1 ? conversation.user2Id : conversation.user1Id;
+      const payload = {
+        conversationId: conversation.id,
+        approverId: currentUserId,
+        approverName: req.user.name,
+        approved: true
+      };
+      io.to(`conversation_${conversation.id}`).emit('whatsappApproved', payload);
+      io.to(`user_${partnerId}`).emit('whatsappApproved', payload);
+    }
+
+    return res.json({
+      success: true,
+      message: 'WhatsApp sharing approved for this conversation.',
+      conversationId: conversation.id,
+      approved: true
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/conversations/:id/report
+ */
+exports.reportUser = async (req, res, next) => {
+  try {
+    const conversationId = req.params.id;
+    const currentUserId = req.user.id;
+    const { reason, details } = req.body;
+
+    const conversation = await Conversation.findByPk(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.', status: 404 });
+    }
+
+    const isUser1 = conversation.user1Id === currentUserId;
+    const isUser2 = conversation.user2Id === currentUserId;
+    if (!isUser1 && !isUser2) {
+      return res.status(403).json({ error: 'Access denied. You are not a participant in this conversation.', status: 403 });
+    }
+
+    const reportedUserId = isUser1 ? conversation.user2Id : conversation.user1Id;
+
+    if (AuditLog) {
+      try {
+        await AuditLog.create({
+          userId: currentUserId,
+          action: 'USER_REPORTED',
+          ipAddress: req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          details: `User ${currentUserId} reported User ${reportedUserId} in conversation ${conversationId}. Reason: ${reason || 'Violation'} - ${details || ''}`
+        });
+      } catch (e) {}
+    }
+
+    return res.json({
+      success: true,
+      message: 'Thank you for your report. Our campus trust and safety team will review this report.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/conversations/:id/block
+ */
+exports.blockUser = async (req, res, next) => {
+  try {
+    const conversationId = req.params.id;
+    const currentUserId = req.user.id;
+
+    const conversation = await Conversation.findByPk(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.', status: 404 });
+    }
+
+    const isUser1 = conversation.user1Id === currentUserId;
+    const isUser2 = conversation.user2Id === currentUserId;
+    if (!isUser1 && !isUser2) {
+      return res.status(403).json({ error: 'Access denied. You are not a participant in this conversation.', status: 403 });
+    }
+
+    const blockedUserId = isUser1 ? conversation.user2Id : conversation.user1Id;
+
+    if (AuditLog) {
+      try {
+        await AuditLog.create({
+          userId: currentUserId,
+          action: 'USER_BLOCKED',
+          ipAddress: req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          details: `User ${currentUserId} blocked User ${blockedUserId} in conversation ${conversationId}`
+        });
+      } catch (e) {}
+    }
+
+    return res.json({
+      success: true,
+      message: 'User has been blocked.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+/**
+ * GET /api/notifications
+ * Latest notifications for the authenticated user (created when messages arrive)
+ */
+exports.getNotifications = async (req, res, next) => {
+  try {
+    const notifications = await Notification.findAll({
+      where: { userId: req.user.id },
+      order: [['createdAt', 'DESC']],
+      limit: 50
+    });
+    return res.json(notifications);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/notifications/read
+ * Marks all of the user's notifications as read
+ */
+exports.markNotificationsRead = async (req, res, next) => {
+  try {
+    await Notification.update({ isRead: true }, { where: { userId: req.user.id, isRead: false } });
+    return res.json({ success: true });
   } catch (error) {
     next(error);
   }

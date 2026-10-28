@@ -83,9 +83,8 @@ if (databaseUrl) {
     }
   });
   console.log(`[DB Config] Configured MySQL connection at ${host}:${port}/${database}.`);
-} else {
-  // Resilient Zero-Config Mode using SQLite
-  // Never crashes the container on Render even if external DB credentials are not yet supplied!
+} else if (!isProduction) {
+  // SQLite is allowed ONLY when NODE_ENV !== 'production' (development/testing)
   const dbDir = path.resolve(process.cwd(), 'data');
   if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
   const sqlitePath = path.join(dbDir, 'bookbridge.sqlite');
@@ -96,8 +95,11 @@ if (databaseUrl) {
     storage: sqlitePath,
     logging: process.env.DB_LOGGING === 'true' ? console.log : false
   });
-  console.warn('[DB Resilience] Neither DATABASE_URL nor MYSQL_HOST provided in environment.');
-  console.warn(`[DB Resilience] Initializing resilient SQLite database at: ${sqlitePath}`);
+  console.log(`[DB Dev Mode] Initialized SQLite development database at: ${sqlitePath}`);
+} else {
+  // In production, DATABASE_URL or MYSQL_HOST is required. No zero-config SQLite mode in production.
+  console.error('[DB Fatal Error] In production, either DATABASE_URL or MYSQL_HOST must be provided. SQLite is not permitted in production. Exiting.');
+  process.exit(1);
 }
 
 /**
@@ -105,7 +107,10 @@ if (databaseUrl) {
  */
 const connectDB = async () => {
   if (!sequelize) {
-    console.warn('[DB Warning] Database connection instance not initialized.');
+    console.error('[DB Fatal Error] Database connection instance not initialized.');
+    if (isProduction) {
+      process.exit(1);
+    }
     return false;
   }
 
@@ -118,30 +123,11 @@ const connectDB = async () => {
     isConnected = false;
     console.error(`[Database Error] Connection failed (${error.message}).`);
 
-    // Automatic Failover: if cloud DB connection fails (e.g. invalid password or network timeout),
-    // fall back to local SQLite so the server stays ALIVE and serves the website and API.
-    if (dbDialect !== 'sqlite') {
-      console.warn(`[DB Failover] Falling back to local SQLite engine to keep server alive and healthy.`);
-      try {
-        const dbDir = path.resolve(process.cwd(), 'data');
-        if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
-        const sqlitePath = path.join(dbDir, 'bookbridge.sqlite');
-        dbDialect = 'sqlite';
-        sequelize = new Sequelize({
-          dialect: 'sqlite',
-          storage: sqlitePath,
-          logging: false
-        });
-        await sequelize.authenticate();
-        isConnected = true;
-        console.log(`[Database Connected] Resilient SQLite fallback engine active.`);
-        return true;
-      } catch (fallbackError) {
-        console.error(`[DB Fatal] Fallback failed:`, fallbackError.message);
-      }
+    if (isProduction) {
+      console.error('[Database Fatal Error] Failed to connect to production database. Exiting process.');
+      process.exit(1);
     }
 
-    console.warn(`[DB Notice] Server will continue running so health checks and static files succeed.`);
     return false;
   }
 };

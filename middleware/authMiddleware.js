@@ -5,8 +5,9 @@
  */
 
 const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../config/secret');
 
-const getSecret = () => process.env.JWT_SECRET || 'bookbridge_jwt_secret_production_enterprise_2026';
+const getSecret = () => JWT_SECRET;
 
 /**
  * Strict authentication: rejects request if token is missing or invalid

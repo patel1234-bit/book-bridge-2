@@ -11,7 +11,7 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { User, PasswordResetToken, AuditLog, Book, Conversation } = require('../models');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'bookbridge_jwt_secret_production_enterprise_2026';
+const { JWT_SECRET } = require('../config/secret');
 const TOKEN_EXPIRY = process.env.JWT_EXPIRES_IN || '7d';
 
 /**

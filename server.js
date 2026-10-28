@@ -38,7 +38,7 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 8000;
 const HOST = '0.0.0.0';
-const JWT_SECRET = process.env.JWT_SECRET || 'bookbridge_jwt_secret_production_enterprise_2026';
+const { JWT_SECRET } = require('./config/secret');
 
 // 1. Initialize Core Middleware & Security
 app.set('trust proxy', 1);
@@ -162,7 +162,7 @@ app.get(['/admin', '/admin.html'], (req, res) => serveStaticFile(res, 'admin.htm
 app.get(['/api/health', '/health'], (req, res) => {
   const isHealthy = getSQLStatus();
 
-  res.status(200).json({
+  res.status(isHealthy ? 200 : 503).json({
     status: isHealthy ? 'ok' : 'degraded',
     service: 'BookBridge Enterprise Engine',
     database: {
@@ -239,14 +239,18 @@ app.use((err, req, res, next) => {
 // 14. Server Initialization Function
 const startServer = async () => {
   try {
-    // Connect to database (with automatic resilient fallback)
+    // Connect to database
     await connectDB();
 
     // Sync relational tables if database engine is active
     if (getSQLStatus()) {
       try {
         await syncDatabase({ alter: false });
-        await seedDatabase();
+        if (process.env.NODE_ENV !== 'production') {
+          await seedDatabase();
+        } else {
+          console.log('[Seed] Skipping automatic database seed in production environment.');
+        }
       } catch (syncError) {
         console.warn('[DB Sync Notice] Schema sync notice:', syncError.message);
       }
@@ -262,10 +266,14 @@ const startServer = async () => {
       console.log(` 🗄️  Database:      ${getDialect().toUpperCase()} Engine (${getSQLStatus() ? 'Connected' : 'Degraded Mode'})`);
       console.log(`===================================================`);
 
-      // Initialize Keep-Alive Heartbeat to prevent Render Free tier from spinning down
+      // Initialize Keep-Alive Heartbeat if KEEP_ALIVE_URL is provided
       initKeepAliveHeartbeat();
     });
   } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`[Startup Fatal Error] Fatal error during production startup:`, error.message);
+      process.exit(1);
+    }
     console.error(`[Startup Notice] Encountered non-fatal error during startup:`, error.message);
     server.listen(PORT, HOST, () => {
       console.log(`[Resilient Startup] Server listening on port ${PORT} to keep instance alive.`);
@@ -276,7 +284,7 @@ const startServer = async () => {
 
 // 15. Keep-Alive Service (Prevents Render Free Tier from Sleeping on Inactivity)
 const initKeepAliveHeartbeat = () => {
-  const rawUrl = process.env.KEEP_ALIVE_URL || process.env.RENDER_EXTERNAL_URL || 'https://bookbridge-tzk2.onrender.com';
+  const rawUrl = process.env.KEEP_ALIVE_URL;
   if (!rawUrl) return;
 
   const targetUrl = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;

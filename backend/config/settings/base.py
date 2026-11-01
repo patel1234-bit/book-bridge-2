@@ -36,7 +36,7 @@ if not SECRET_KEY:
 ALLOWED_HOSTS = [
     h.strip() for h in os.environ.get('ALLOWED_HOSTS', '*').split(',') if h.strip()
 ]
-if '*' not in ALLOWED_HOSTS:
+if DEBUG and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('*')
 if '.onrender.com' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('.onrender.com')
@@ -418,7 +418,9 @@ if (PROJECT_ROOT / 'browse_js').exists():
     STATICFILES_DIRS.append(('browse_js', PROJECT_ROOT / 'browse_js'))
 
 # Root files for direct WhiteNoise serving (e.g. style.css, favicon, logo)
-WHITENOISE_ROOT = PROJECT_ROOT
+# Root files for direct WhiteNoise serving disabled to prevent root file leakage
+# serve_root_asset explicitly and safely serves allowed root assets
+WHITENOISE_ROOT = None
 WHITENOISE_AUTOREFRESH = DEBUG
 WHITENOISE_USE_FINDERS = True
 
@@ -540,7 +542,7 @@ else:
 # ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG and not bool(os.environ.get('CORS_ALLOWED_ORIGINS'))
 CORS_ALLOW_CREDENTIALS = True
 
 _cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '')

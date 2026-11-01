@@ -169,8 +169,9 @@ class BookCreateSerializer(serializers.ModelSerializer):
                     img.save(output, format='JPEG', quality=85, optimize=True)
 
                 output.seek(0)
-                base_name = os.path.splitext(value.name)[0]
-                new_filename = f"{base_name}.{file_ext}"
+                import uuid
+                safe_uuid = uuid.uuid4().hex
+                new_filename = f"book_{safe_uuid}.{file_ext}"
 
                 value = InMemoryUploadedFile(
                     output,

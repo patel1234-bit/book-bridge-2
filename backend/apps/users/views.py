@@ -378,19 +378,7 @@ class ForgotPasswordRequestView(APIView):
                 'status': 'NOT_FOUND'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # Direct password reset if new_password is provided
-        if new_password:
-            if len(new_password) < 6:
-                return Response({'error': 'Password must be at least 6 characters long.'}, status=status.HTTP_400_BAD_REQUEST)
-            user.set_password(new_password)
-            user.is_active = True
-            user.save()
-            return Response({
-                'status': 'SUCCESS',
-                'message': f'Password for {email} has been updated successfully! You can now log in with your new password.',
-                'email': email,
-                'updated': True
-            }, status=status.HTTP_200_OK)
+        # Note: Password reset requires token verification via ResetPasswordConfirmView
 
         # Generate cryptographic reset token
         token = default_token_generator.make_token(user)
@@ -440,12 +428,14 @@ class ResetPasswordConfirmView(APIView):
         if not user:
             return Response({'error': 'User account not found.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if token:
-            try:
-                if not default_token_generator.check_token(user, token):
-                    return Response({'error': 'The password reset token is invalid or has expired.'}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception:
-                pass
+        if not token:
+            return Response({'error': 'Cryptographic password reset token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if not default_token_generator.check_token(user, token):
+                return Response({'error': 'The password reset token is invalid or has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return Response({'error': 'Invalid reset token format.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user.set_password(new_password)
         user.is_active = True
@@ -474,14 +464,22 @@ class UserRoleUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsBookBridgeeAdmin]
 
     def put(self, request, pk):
+        actor = request.user
+        is_super = actor.is_superuser or getattr(actor, 'role', '').upper() == 'SUPER_ADMIN'
+        if not is_super:
+            raise permissions.exceptions.PermissionDenied("Only Super Administrators can modify account roles.")
+
         try:
             target = User.objects.get(pk=pk)
         except (User.DoesNotExist, ValueError):
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        role = request.data.get('role')
-        if not role:
-            return Response({'error': 'Role is required'}, status=status.HTTP_400_BAD_REQUEST)
-        target.role = str(role).lower()
+
+        role = str(request.data.get('role') or '').upper().strip()
+        allowed_roles = {'STUDENT', 'FACULTY', 'COLLEGE_ADMIN', 'DEPT_ADMIN', 'SUPER_ADMIN'}
+        if role not in allowed_roles:
+            return Response({'error': f'Invalid role. Allowed roles: {sorted(list(allowed_roles))}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        target.role = role
         target.save(update_fields=['role'])
         return Response({'success': True, 'user': UserSerializer(target).data}, status=status.HTTP_200_OK)
 

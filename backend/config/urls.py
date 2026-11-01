@@ -110,7 +110,20 @@ MIME_MAP = {
 
 
 def serve_root_asset(request, asset_path):
-    filepath = PROJECT_ROOT / asset_path
+    # Strict path traversal check: ensure resolved path resides strictly within PROJECT_ROOT
+    try:
+        filepath = (PROJECT_ROOT / asset_path).resolve()
+        project_root_resolved = PROJECT_ROOT.resolve()
+        if not filepath.is_relative_to(project_root_resolved):
+            return HttpResponse("Access Denied", status=403)
+    except Exception:
+        return HttpResponse("Access Denied", status=403)
+
+    # Block sensitive system and configuration extensions
+    blocked_names = {'.env', '.git', 'render.yaml', 'Procfile', 'docker-compose.yml', 'package.json', 'package-lock.json'}
+    if filepath.name.lower() in blocked_names or any(part.startswith('.') for part in filepath.parts):
+        return HttpResponse("Access Denied", status=403)
+
     if filepath.exists() and filepath.is_file():
         ext = filepath.suffix.lower()
         content_type = MIME_MAP.get(ext)

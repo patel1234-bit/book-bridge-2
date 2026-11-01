@@ -15,13 +15,23 @@ document.addEventListener("DOMContentLoaded", () => {
             const isActive = mobileDrawer.classList.toggle("active");
             mobileBtn.innerHTML = isActive ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-bars"></i>';
             mobileBtn.setAttribute("aria-expanded", isActive);
+            document.body.classList.toggle("drawer-open", isActive);
         });
         mobileDrawer.querySelectorAll("a").forEach(link => {
             link.addEventListener("click", () => {
                 mobileDrawer.classList.remove("active");
                 mobileBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
                 mobileBtn.setAttribute("aria-expanded", "false");
+                document.body.classList.remove("drawer-open");
             });
+        });
+        document.addEventListener("click", (e) => {
+            if (mobileDrawer.classList.contains("active") && !mobileDrawer.contains(e.target) && !mobileBtn.contains(e.target)) {
+                mobileDrawer.classList.remove("active");
+                mobileBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+                mobileBtn.setAttribute("aria-expanded", "false");
+                document.body.classList.remove("drawer-open");
+            }
         });
     }
 

@@ -581,3 +581,181 @@ header.navbar#navbar .navbar-inner {
 
     }
 
+
+
+/* ==========================================================================
+   MOBILE RESPONSIVE ENHANCEMENTS FOR BROWSE BOOKS PAGE (320px - 768px)
+   ========================================================================== */
+
+@media (max-width: 991px) {
+  /* Search & Filter Row on Mobile & Tablets */
+  .search-filter-section {
+    padding: 16px 0 !important;
+  }
+  .search-filter-section .row {
+    row-gap: 10px !important;
+  }
+  .search-filter-section .col-lg-7 {
+    width: 100% !important;
+  }
+  .search-filter-section .col-lg-2 {
+    width: 48% !important;
+    display: inline-block !important;
+  }
+  .search-filter-section .col-lg-3 {
+    width: 48% !important;
+    display: inline-block !important;
+    margin-left: auto !important;
+  }
+  .search-filter-section .btn-outline-success,
+  .search-filter-section .form-select {
+    height: 46px !important;
+    min-height: 46px !important;
+    font-size: 14.5px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Quick Chips Horizontal Touch Scroll Track */
+  #browseQuickChips {
+    display: flex !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    padding: 4px 2px 8px !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 8px !important;
+  }
+  #browseQuickChips::-webkit-scrollbar {
+    display: none !important;
+  }
+  .browse-chip {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    padding: 7px 14px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 20px !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #ffffff !important;
+    transition: all 0.2s ease !important;
+  }
+  .browse-chip.active {
+    background: #059669 !important;
+    color: #ffffff !important;
+    border-color: #059669 !important;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero-section {
+    padding: 28px 0 20px !important;
+    text-align: center !important;
+  }
+  .hero-title {
+    font-size: clamp(22px, 5.5vw, 28px) !important;
+    margin-bottom: 8px !important;
+  }
+  .hero-description {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    margin-bottom: 16px !important;
+  }
+  .hero-section .d-flex.gap-3 {
+    justify-content: center !important;
+    gap: 8px !important;
+  }
+  .hero-section .btn {
+    min-height: 44px !important;
+    font-size: 13.5px !important;
+    padding: 8px 14px !important;
+  }
+
+  /* Book Card Mobile Design */
+  .books-section {
+    padding: 24px 0 40px !important;
+  }
+  .book-card {
+    border-radius: 14px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  .book-image {
+    height: clamp(160px, 45vw, 210px) !important;
+    padding: 10px !important;
+    object-fit: contain !important;
+    background: #f9fafb !important;
+  }
+  .book-content {
+    padding: 14px !important;
+  }
+  .book-badges {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    margin-bottom: 8px !important;
+  }
+  .book-badges span {
+    font-size: 10px !important;
+    padding: 2px 7px !important;
+    border-radius: 6px !important;
+  }
+  .book-title {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1.35 !important;
+    margin-bottom: 4px !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  .book-author {
+    font-size: 12.5px !important;
+    color: #6b7280 !important;
+    margin-bottom: 8px !important;
+  }
+  .book-price {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    color: #059669 !important;
+  }
+  .book-condition {
+    font-size: 11.5px !important;
+    margin-bottom: 10px !important;
+  }
+  .book-card .view-btn {
+    min-height: 42px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+  }
+  .book-card .chat-card-btn {
+    min-height: 42px !important;
+    font-size: 13px !important;
+    padding: 0 12px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Filter Offcanvas */
+  .offcanvas {
+    width: min(100%, 350px) !important;
+    border-top-left-radius: 16px !important;
+    border-bottom-left-radius: 16px !important;
+  }
+  .offcanvas-header {
+    padding: 16px 18px !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+  }
+  .offcanvas-body {
+    padding: 18px 16px 32px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .search-filter-section .col-lg-2,
+  .search-filter-section .col-lg-3 {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+}

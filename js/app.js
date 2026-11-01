@@ -153,6 +153,7 @@ function setupMobileMenu() {
     btn.classList.remove('active');
     btn.innerHTML = svgHamburger;
     btn.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('drawer-open');
   }
 
   function openDrawer() {
@@ -160,6 +161,7 @@ function setupMobileMenu() {
     btn.classList.add('active');
     btn.innerHTML = svgClose;
     btn.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('drawer-open');
   }
 
   btn.addEventListener('click', (e) => {
@@ -1794,15 +1796,17 @@ window.handleDeleteAdminUser = async function(id) {
 
 /* 📊 DASHBOARD — Full Implementation */
 async function initDashboardPage() {
-  const sidebarLinks = document.querySelectorAll('.sidebar-link[data-tab]');
+  const allTabTriggers = document.querySelectorAll('.sidebar-link[data-tab], .dash-tab-pill[data-tab]');
   const tabContents = document.querySelectorAll('.tab-content');
 
-  sidebarLinks.forEach(link => {
+  allTabTriggers.forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       const tabId = link.dataset.tab;
-      sidebarLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
+      allTabTriggers.forEach(l => {
+        if (l.dataset.tab === tabId) l.classList.add('active');
+        else l.classList.remove('active');
+      });
       tabContents.forEach(t => t.classList.remove('active'));
       document.getElementById('tab-' + tabId)?.classList.add('active');
     });

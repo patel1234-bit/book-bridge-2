@@ -141,6 +141,7 @@ const serveStaticFile = (res, filename) => {
   for (const filePath of candidates) {
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       return res.sendFile(filePath);
     }
   }

@@ -322,11 +322,18 @@ else:
 # ---------------------------------------------------------------------------
 # CHANNELS & REDIS LAYER CONFIGURATION
 # ---------------------------------------------------------------------------
-_redis_url = os.environ.get('REDIS_URL', '') or os.environ.get('REDIS_TLS_URL', '')
+_redis_url = os.environ.get('REDIS_URL', '').strip() or os.environ.get('REDIS_TLS_URL', '').strip()
 _redis_host = os.environ.get('REDIS_HOST', '').strip()
 _redis_port = str(os.environ.get('REDIS_PORT', '6379')).strip()
 
-if _redis_url:
+_has_channels_redis = False
+try:
+    import channels_redis  # noqa: F401
+    _has_channels_redis = True
+except ImportError:
+    _has_channels_redis = False
+
+if _redis_url and not _is_testing and _has_channels_redis:
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -335,7 +342,7 @@ if _redis_url:
             },
         },
     }
-elif _redis_host:
+elif _redis_host and not _is_testing and _has_channels_redis:
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -519,25 +526,23 @@ SIMPLE_JWT = {
 }
 
 # ---------------------------------------------------------------------------
-# CHANNELS & REAL-TIME WEBSOCKETS (Redis / In-Memory fallback)
+# EMAIL CONFIGURATION (SMTP with Console/In-Memory fallback)
 # ---------------------------------------------------------------------------
-_redis_url = os.environ.get('REDIS_URL', '').strip() or os.environ.get('REDIS_TLS_URL', '').strip()
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com').strip()
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587').strip())
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', os.environ.get('EMAIL_USER', '')).strip()
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', os.environ.get('EMAIL_PASS', '')).strip()
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', os.environ.get('SUPPORT_EMAIL', 'BookBridge <bookbridgee@gmail.com>'))
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
-if _redis_url and not _is_testing:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [_redis_url],
-            },
-        },
-    }
+if _is_testing:
+    EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 else:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' 
 
 # ---------------------------------------------------------------------------
 # CORS

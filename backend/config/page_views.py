@@ -16,7 +16,9 @@ def serve_html_page(filename):
         file_path = os.path.join(root_dir, filename)
         if os.path.exists(file_path):
             with open(file_path, 'r', encoding='utf-8') as f:
-                return HttpResponse(f.read(), content_type='text/html; charset=utf-8')
+                response = HttpResponse(f.read(), content_type='text/html; charset=utf-8')
+                response['Cache-Control'] = 'no-cache, must-revalidate'
+                return response
         raise Http404(f"Page {filename} not found at {file_path}")
     return view
 

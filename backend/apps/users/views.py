@@ -1,3 +1,7 @@
+import logging
+from django.conf import settings
+from django.core.mail import send_mail
+logger = logging.getLogger(__name__)
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -359,41 +363,64 @@ from django.utils.encoding import force_bytes, force_str
 
 class ForgotPasswordRequestView(APIView):
     """
-    Initiates password recovery or executes direct password reset.
-    Returns secure cryptographic reset token and instant reset URL.
+    Initiates password recovery.
+    Sends reset link via configured email backend (SMTP/console) and returns a uniform success response
+    to prevent user account enumeration.
     """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         email = request.data.get('email', '').strip().lower()
-        new_password = request.data.get('new_password') or request.data.get('password')
 
         if not email:
             return Response({'error': 'Email address is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.filter(email__iexact=email).first()
-        if not user:
-            return Response({
-                'error': f'No account found with email "{email}". Please check your email or create a free account.',
-                'status': 'NOT_FOUND'
-            }, status=status.HTTP_404_NOT_FOUND)
 
-        # Note: Password reset requires token verification via ResetPasswordConfirmView
-
-        # Generate cryptographic reset token
-        token = default_token_generator.make_token(user)
-        uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
-        reset_url = f"/forgot-password.html?token={token}&uid={uid}&email={email}"
-
-        return Response({
+        # Security: Anti-enumeration uniform response
+        success_message = f'If an account exists for {email}, a password reset link has been dispatched.'
+        response_data = {
             'status': 'SUCCESS',
-            'message': f'Account verified for {email}. Click below to set your new password.',
+            'message': success_message,
             'email': email,
-            'reset_uid': uid,
-            'reset_token': token,
-            'reset_url': reset_url,
             'verified': True
-        }, status=status.HTTP_200_OK)
+        }
+
+        if user and user.is_active:
+            # Generate cryptographic reset token
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
+
+            host = request.build_absolute_uri('/')[:-1] if hasattr(request, 'build_absolute_uri') else ''
+            reset_url = f"{host}/forgot-password.html?token={token}&uid={uid}&email={email}"
+
+            # Dispatch reset email via configured email backend
+            try:
+                msg_body = (
+                    f"Hello {user.full_name or 'Student'},\n\n"
+                    f"A password reset request was received for your BookBridge account.\n"
+                    f"Click the link below to reset your password (valid for 1 hour):\n\n"
+                    f"{reset_url}\n\n"
+                    f"If you did not request this, please ignore this email."
+                )
+                send_mail(
+                    subject='Reset Your BookBridge Password',
+                    message=msg_body,
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'BookBridge <bookbridgee@gmail.com>'),
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+                logger.info("Password reset email successfully dispatched to: %s", user.email)
+            except Exception as mail_err:
+                logger.error("Failed to dispatch password reset email to %s: %s", user.email, str(mail_err))
+
+            # In development/demo/test mode, include reset details in JSON for convenience
+            if getattr(settings, 'DEBUG', False) or getattr(settings, 'DEMO_MODE', False) or getattr(settings, '_is_testing', False):
+                response_data['reset_uid'] = uid
+                response_data['reset_token'] = token
+                response_data['reset_url'] = reset_url
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class ResetPasswordConfirmView(APIView):

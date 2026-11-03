@@ -147,6 +147,8 @@ urlpatterns = [
     path('api/health/liveness/', health_liveness),
     path('api/health/readiness', health_readiness, name='api-health-readiness'),
     path('api/health/readiness/', health_readiness),
+    path('api/ping', health_liveness, name='api-ping'),
+    path('ping', health_liveness, name='ping'),
 
     # ── Root HTML Pages ───────────────────────────────────────────────────────
     path('', serve_html_page('index.html'), name='home-page'),

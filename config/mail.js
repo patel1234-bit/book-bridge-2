@@ -13,8 +13,8 @@ const BREVO_API_KEY = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KE
 const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || 'bookbridgee@gmail.com';
 const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || 'BookBridge Support';
 
-const SMTP_USER = process.env.EMAIL_USER || process.env.SMTP_USER || process.env.GMAIL_USER || '';
-const SMTP_PASS = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || '';
+const SMTP_USER = process.env.EMAIL_HOST_USER || process.env.EMAIL_USER || process.env.SMTP_USER || process.env.GMAIL_USER || '';
+const SMTP_PASS = process.env.EMAIL_HOST_PASSWORD || process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || '';
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT, 10) || 587;
 

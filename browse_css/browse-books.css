@@ -90,26 +90,292 @@ header.navbar#navbar .navbar-inner {
 }
 
 /* ==========================================
-   Hero Section
+   Marketplace Header Section (Replaces Old Hero)
+========================================== */
+
+.marketplace-hero-section {
+    background: linear-gradient(180deg, rgba(62, 107, 58, 0.05) 0%, rgba(248, 250, 252, 0) 100%);
+    padding: 32px 0 16px;
+    margin-top: 8px;
+    position: relative;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.marketplace-breadcrumb {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.marketplace-breadcrumb a {
+    color: #64748B;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.marketplace-breadcrumb a:hover {
+    color: #3E6B3A;
+}
+
+.marketplace-breadcrumb .breadcrumb-item.active {
+    color: #3E6B3A;
+    font-weight: 600;
+}
+
+.marketplace-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #eef6ec;
+    color: #2e592b;
+    border: 1px solid rgba(62, 107, 58, 0.2);
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.marketplace-badge .badge-icon {
+    color: #3E6B3A;
+    font-size: 14px;
+}
+
+.marketplace-title {
+    font-family: var(--font-display, 'Outfit', sans-serif);
+    font-size: clamp(2rem, 1.6rem + 1.8vw, 2.75rem);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 14px;
+    color: var(--color-dark, #0F172A);
+    letter-spacing: -0.02em;
+}
+
+.marketplace-title .highlight-green {
+    color: #3E6B3A;
+    display: inline-block;
+    position: relative;
+}
+
+.marketplace-description {
+    color: #475569;
+    font-size: 15px;
+    line-height: 1.65;
+    margin-bottom: 20px;
+    max-width: 580px;
+}
+
+.marketplace-trust-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.trust-pill {
+    display: inline-flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1E293B;
+}
+
+/* ==========================================
+   3D Real GTU Textbook Showcase
+========================================== */
+
+.textbook-showcase-wrapper {
+    position: relative;
+    padding: 20px 10px 40px;
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+.textbook-showcase {
+    position: relative;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.showcase-book {
+    position: absolute;
+    width: 145px;
+    height: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center bottom;
+}
+
+.showcase-book img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.showcase-book-tag {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(4px);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.showcase-book-1 {
+    left: 15px;
+    transform: rotate(-10deg) translateY(10px);
+    z-index: 1;
+    opacity: 0.95;
+}
+
+.showcase-book-2 {
+    left: 50%;
+    transform: translateX(-50%) translateY(-12px) scale(1.08);
+    z-index: 3;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    border: 2px solid #ffffff;
+}
+
+.showcase-book-3 {
+    right: 15px;
+    transform: rotate(10deg) translateY(10px);
+    z-index: 2;
+    opacity: 0.95;
+}
+
+.textbook-showcase-wrapper:hover .showcase-book-1 {
+    transform: rotate(-14deg) translateX(-8px) translateY(8px);
+}
+
+.textbook-showcase-wrapper:hover .showcase-book-2 {
+    transform: translateX(-50%) translateY(-18px) scale(1.12);
+}
+
+.textbook-showcase-wrapper:hover .showcase-book-3 {
+    transform: rotate(14deg) translateX(8px) translateY(8px);
+}
+
+.showcase-floating-card {
+    position: absolute;
+    bottom: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(62, 107, 58, 0.25);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 8px 16px;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    z-index: 4;
+}
+
+.showcase-floating-card .floating-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #eef6ec;
+    color: #3E6B3A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.showcase-floating-card .floating-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0F172A;
+    line-height: 1.2;
+}
+
+.showcase-floating-card .floating-sub {
+    font-size: 11px;
+    color: #64748B;
+    line-height: 1.2;
+}
+
+@media (max-width: 991.98px) {
+    .marketplace-hero-section {
+        padding: 24px 0 12px;
+        text-align: left;
+    }
+    .textbook-showcase-wrapper {
+        margin-top: 10px;
+        max-width: 360px;
+    }
+    .textbook-showcase {
+        height: 220px;
+    }
+    .showcase-book {
+        width: 120px;
+        height: 165px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .marketplace-hero-section {
+        padding: 16px 0 8px;
+    }
+    .marketplace-title {
+        font-size: 1.75rem;
+    }
+    .marketplace-description {
+        font-size: 14px;
+        margin-bottom: 14px;
+    }
+    .trust-pill {
+        font-size: 12px;
+        padding: 4px 10px;
+    }
+    .textbook-showcase-wrapper {
+        padding-bottom: 30px;
+    }
+    .showcase-floating-card {
+        padding: 6px 12px;
+    }
+}
+
+/* ==========================================
+   Hero Section Legacy Support
 ========================================== */
 
 .hero-section{
     background: var(--color-bg, #F8FAFC);
-    padding:60px 0 20px;
+    padding:40px 0 20px;
 }
 
 .hero-title{
     font-family: var(--font-display, 'Outfit', sans-serif);
-    font-size:3rem;
+    font-size:2.5rem;
     font-weight:700;
-    margin-bottom:20px;
+    margin-bottom:16px;
     color: var(--color-dark, #0F172A);
 }
 
 .hero-description{
     color:#666;
-    line-height:1.8;
-    margin-bottom:25px;
+    line-height:1.7;
+    margin-bottom:20px;
     max-width:550px;
 }
 

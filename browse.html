@@ -28,7 +28,7 @@
     <!-- Design Tokens, Base Design System & Custom CSS -->
     <link rel="stylesheet" href="css/design-tokens.css">
     <link rel="stylesheet" href="style.css?v=2.2">
-    <link rel="stylesheet" href="browse_css/browse-books.css?v=2.2">
+    <link rel="stylesheet" href="browse_css/browse-books.css?v=2.3">
     <link rel="stylesheet" href="css/chat.css">
 
 </head>
@@ -85,54 +85,89 @@
         </div>
     </div>
 
-    <!-- ===================== Hero Section ===================== -->
-
-    <section class="hero-section py-5">
-
+    <!-- ===================== Marketplace Header Section ===================== -->
+    <section class="marketplace-hero-section">
         <div class="container">
-
-            <div class="row align-items-center">
-
+            <div class="row align-items-center g-4">
                 <!-- Left Content -->
+                <div class="col-lg-7">
+                    <!-- Breadcrumbs -->
+                    <nav aria-label="breadcrumb" class="mb-2">
+                        <ol class="breadcrumb marketplace-breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="index.html"><i class="bi bi-house-door me-1"></i>Home</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Buy Books</li>
+                        </ol>
+                    </nav>
 
-                <div class="col-lg-6">
-
-                    <h1 class="hero-title">
-                        Buy & Browse Books
-                    </h1>
-
-                    <p class="hero-description">
-                        Find textbooks, reference books and study materials shared by students across different
-                        departments. Buy affordable books or sell your books directly to juniors and batchmates.
-                    </p>
-
-                    <div class="d-flex gap-3 flex-wrap mt-3">
-                        <a href="#books-section" class="btn btn-success btn-lg">
-                            <i class="bi bi-cart3 me-2"></i> Buy Books
-                        </a>
-                        <a href="sell.html" class="btn btn-outline-success btn-lg">
-                            <i class="bi bi-tag-fill me-2"></i> Sell Books
-                        </a>
-                        <button class="btn btn-outline-secondary btn-lg" type="button" id="btnBrowseHeroUpload">
-                            <i class="bi bi-cloud-arrow-up me-2"></i> Quick Upload
-                        </button>
+                    <!-- Trust Badge -->
+                    <div class="marketplace-badge mb-3">
+                        <span class="badge-icon"><i class="bi bi-patch-check-fill"></i></span>
+                        <span>Verified Student Marketplace · 100% Peer-to-Peer</span>
                     </div>
 
+                    <!-- Marketplace Title -->
+                    <h1 class="marketplace-title">
+                        Academic Textbooks & <span class="highlight-green">GTU Study Material</span>
+                    </h1>
+
+                    <p class="marketplace-description">
+                        Find verified semester textbooks, lab manuals, and exam guides shared directly by seniors across all GTU departments at up to 80% off retail prices.
+                    </p>
+
+                    <!-- Campus Trust Pills -->
+                    <div class="marketplace-trust-pills mb-4">
+                        <span class="trust-pill"><i class="bi bi-mortarboard-fill text-success me-1"></i> All GTU Branches</span>
+                        <span class="trust-pill"><i class="bi bi-tags-fill text-primary me-1"></i> Save 50%–80%</span>
+                        <span class="trust-pill"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Direct Campus Handover</span>
+                    </div>
+
+                    <!-- Quick Action Shortcuts -->
+                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <a href="#searchInput" class="btn btn-success btn-md fw-semibold" onclick="document.getElementById('searchInput')?.focus();">
+                            <i class="bi bi-search me-1"></i> Search Catalog
+                        </a>
+                        <button class="btn btn-outline-secondary btn-md fw-semibold" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterCanvas">
+                            <i class="bi bi-funnel me-1"></i> Department Filters
+                        </button>
+                        <a href="sell.html" class="btn btn-link text-decoration-none text-muted small fw-semibold ms-2">
+                            Have books to sell? <span class="text-success text-decoration-underline">Sell Here &rarr;</span>
+                        </a>
+                    </div>
                 </div>
 
-                <!-- Right Image -->
+                <!-- Right Visual: 3D Real GTU Textbook Showcase -->
+                <div class="col-lg-5 text-center">
+                    <div class="textbook-showcase-wrapper">
+                        <div class="textbook-showcase">
+                            <!-- Book 1 (Physics) -->
+                            <div class="showcase-book showcase-book-1">
+                                <img src="browse_images/books/book1.jpg" alt="Applied Physics GTU Textbook" loading="lazy">
+                                <span class="showcase-book-tag">Sem 1-2</span>
+                            </div>
+                            <!-- Book 2 (Programming) -->
+                            <div class="showcase-book showcase-book-2">
+                                <img src="browse_images/books/book4.jpg" alt="Computer Programming GTU Textbook" loading="lazy">
+                                <span class="showcase-book-tag">Computer Sci</span>
+                            </div>
+                            <!-- Book 3 (Chemistry) -->
+                            <div class="showcase-book showcase-book-3">
+                                <img src="browse_images/books/book2.jpg" alt="Applied Chemistry GTU Textbook" loading="lazy">
+                                <span class="showcase-book-tag">Sem 1</span>
+                            </div>
+                        </div>
 
-                <div class="col-lg-6 text-center mt-4 mt-lg-0">
-
-                    <img src="browse_images/hero.png" alt="BookBridge Browse Books"
-                        class="img-fluid hero-image rounded shadow-sm">
-
+                        <!-- Floating Verified Campus Badge -->
+                        <div class="showcase-floating-card">
+                            <div class="floating-icon"><i class="bi bi-shield-check"></i></div>
+                            <div class="floating-text">
+                                <div class="floating-title">100% Syllabus Aligned</div>
+                                <div class="floating-sub">Verified GTU & Diploma Editions</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
             </div>
-
         </div>
-
     </section>
 
 
@@ -244,15 +279,6 @@
                     Books
 
                 </h5>
-
-                <div class="d-flex align-items-center gap-2">
-                    <span id="adminBadge" class="badge bg-danger d-none px-3 py-2 fs-6">
-                        <i class="bi bi-shield-lock-fill me-1"></i> Admin Mode Active
-                    </span>
-                    <button id="adminToggleBtn" class="btn btn-outline-danger btn-sm d-none" type="button">
-                        <i class="bi bi-shield-lock me-1"></i> Admin Access
-                    </button>
-                </div>
 
             </div>
 

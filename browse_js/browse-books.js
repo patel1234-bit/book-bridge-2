@@ -10,27 +10,49 @@ document.addEventListener("DOMContentLoaded", () => {
     const mobileBtn = document.getElementById("mobileMenuToggle");
     const mobileDrawer = document.getElementById("mobileNavDrawer");
     if (mobileBtn && mobileDrawer) {
+        const svgHamburger = '<svg class="mobile-toggle-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+        const svgClose = '<svg class="mobile-toggle-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+        function closeDrawer() {
+            mobileDrawer.classList.remove('active');
+            mobileBtn.classList.remove('active');
+            mobileBtn.innerHTML = svgHamburger;
+            mobileBtn.setAttribute('aria-expanded', 'false');
+            document.body.classList.remove('drawer-open');
+        }
+
+        function openDrawer() {
+            mobileDrawer.classList.add('active');
+            mobileBtn.classList.add('active');
+            mobileBtn.innerHTML = svgClose;
+            mobileBtn.setAttribute('aria-expanded', 'true');
+            document.body.classList.add('drawer-open');
+        }
+
         mobileBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            const isActive = mobileDrawer.classList.toggle("active");
-            mobileBtn.innerHTML = isActive ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-bars"></i>';
-            mobileBtn.setAttribute("aria-expanded", isActive);
-            document.body.classList.toggle("drawer-open", isActive);
+            if (mobileDrawer.classList.contains("active")) {
+                closeDrawer();
+            } else {
+                openDrawer();
+            }
         });
+
         mobileDrawer.querySelectorAll("a").forEach(link => {
             link.addEventListener("click", () => {
-                mobileDrawer.classList.remove("active");
-                mobileBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
-                mobileBtn.setAttribute("aria-expanded", "false");
-                document.body.classList.remove("drawer-open");
+                closeDrawer();
             });
         });
+
         document.addEventListener("click", (e) => {
             if (mobileDrawer.classList.contains("active") && !mobileDrawer.contains(e.target) && !mobileBtn.contains(e.target)) {
-                mobileDrawer.classList.remove("active");
-                mobileBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
-                mobileBtn.setAttribute("aria-expanded", "false");
-                document.body.classList.remove("drawer-open");
+                closeDrawer();
+            }
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && mobileDrawer.classList.contains("active")) {
+                closeDrawer();
             }
         });
     }
@@ -58,35 +80,88 @@ document.addEventListener("DOMContentLoaded", () => {
     initCatalogRealtime();
 });
 
-function syncBrowseNavUser() {
-    const navActions = document.getElementById("browseNavActions");
+async function syncBrowseNavUser() {
+    const navActions = document.getElementById("browseNavActions") || document.querySelector('.nav-actions');
+    const mobileActions = document.getElementById("mobileDrawerActions") || document.querySelector('.drawer-actions');
     if (!navActions) return;
 
     try {
-        const currentUser = JSON.parse(localStorage.getItem("rcti_gtu_current_user") || "null");
+        let currentUser = null;
+        if (window.BookAPI && typeof window.BookAPI.getCurrentUser === 'function') {
+            try { currentUser = await window.BookAPI.getCurrentUser(); } catch (err) {}
+        }
+        if (!currentUser) {
+            currentUser = JSON.parse(localStorage.getItem("rcti_gtu_current_user") || "null");
+        }
+
         if (currentUser && (currentUser.name || currentUser.email)) {
+            const isAdmin = currentUser.role === 'admin' || currentUser.role === 'SUPER_ADMIN';
             const rawName = currentUser.name || currentUser.email.split('@')[0];
             const safeName = typeof escapeHTML === 'function' ? escapeHTML(rawName) : (window.escapeHTML ? window.escapeHTML(rawName) : String(rawName).replace(/</g, '&lt;'));
-            navActions.innerHTML = `
-                <div class="d-flex align-items-center gap-2">
-                    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" class="d-none d-sm-inline">
-                        <i class="fa-solid fa-user-circle me-1"></i> ${safeName}
+
+            let userHTML = '';
+            let mobileHTML = '';
+
+            if (isAdmin) {
+                userHTML = `
+                    <span class="nav-admin-badge" style="font-size: 12px; font-weight: 700; color: #dc2626; background: #fee2e2; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 5px; vertical-align: middle;">
+                        <i class="fa-solid fa-shield-halved"></i> ${safeName}
+                    </span>
+                    <a href="admin.html" class="btn btn-primary btn-sm btn-admin-portal" style="background: #dc2626; border-color: #dc2626; color: #ffffff;"><i class="fa-solid fa-shield-halved me-1"></i> Admin Portal</a>
+                    <a href="dashboard.html" class="btn btn-ghost btn-sm">
+                        <i class="fa-solid fa-gauge me-1"></i> Dashboard
+                    </a>
+                    <button id="btnNavLogout" class="btn btn-ghost btn-sm" title="Log Out">
+                        Logout
+                    </button>
+                `;
+                mobileHTML = `
+                    <div style="font-size: 14px; font-weight: 700; color: #dc2626; padding: 8px 0; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-shield-halved"></i> ${safeName} <span style="font-size: 11px; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 9999px; font-weight: 800;">ADMIN</span>
+                    </div>
+                    <a href="admin.html" class="btn btn-primary btn-block btn-admin-portal" style="background: #dc2626; border-color: #dc2626; color: #ffffff; margin-bottom: 8px; text-decoration: none;"><i class="fa-solid fa-shield-halved me-1"></i> Admin Portal</a>
+                    <a href="dashboard.html" class="btn btn-ghost btn-block" style="margin-bottom: 8px; text-decoration: none;"><i class="fa-solid fa-gauge me-1"></i> Student Dashboard</a>
+                    <button id="btnMobileLogout" class="btn btn-secondary btn-block">Logout</button>
+                `;
+            } else {
+                userHTML = `
+                    <span class="nav-user-badge" style="font-size: 13px; font-weight: 600; color: var(--color-primary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; vertical-align: middle;">
+                        <i class="fa-solid fa-user-circle"></i> ${safeName}
                     </span>
                     <a href="dashboard.html" class="btn btn-ghost btn-sm">
                         <i class="fa-solid fa-gauge me-1"></i> Dashboard
                     </a>
-                    <button id="btnBrowseLogout" class="btn btn-ghost btn-sm" title="Log Out">
+                    <button id="btnNavLogout" class="btn btn-ghost btn-sm" title="Log Out">
                         Logout
                     </button>
-                </div>
-            `;
+                `;
+                mobileHTML = `
+                    <div style="font-size: 14px; font-weight: 600; color: var(--color-primary); padding: 8px 0; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-user-circle"></i> ${safeName} <span style="font-size: 11px; background: rgba(62, 107, 58, 0.1); color: var(--color-primary); padding: 2px 8px; border-radius: 9999px; font-weight: 700;">STUDENT</span>
+                    </div>
+                    <a href="dashboard.html" class="btn btn-ghost btn-block" style="margin-bottom: 8px; text-decoration: none;"><i class="fa-solid fa-gauge me-1"></i> Dashboard</a>
+                    <button id="btnMobileLogout" class="btn btn-secondary btn-block">Logout</button>
+                `;
+            }
 
-            document.getElementById("btnBrowseLogout")?.addEventListener("click", () => {
+            navActions.innerHTML = userHTML;
+            if (mobileActions) mobileActions.innerHTML = mobileHTML;
+
+            const logoutHandler = async () => {
+                try {
+                    if (window.BookAPI && typeof window.BookAPI.logout === 'function') {
+                        await window.BookAPI.logout();
+                    }
+                } catch (e) {}
                 localStorage.removeItem("rcti_gtu_current_user");
                 localStorage.removeItem("bb_access_token");
                 localStorage.removeItem("bb_refresh_token");
+                localStorage.removeItem("admin_mode");
                 window.location.reload();
-            });
+            };
+
+            document.getElementById("btnNavLogout")?.addEventListener("click", logoutHandler);
+            document.getElementById("btnMobileLogout")?.addEventListener("click", logoutHandler);
         }
     } catch (e) {
         console.warn("Could not sync nav user on browse page:", e);

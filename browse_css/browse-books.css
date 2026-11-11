@@ -37,6 +37,7 @@ img{
 
 /* ==========================================
    Navbar Compatibility with Home Page Style
+   (Enforces 100% Visual Parity with index.html)
 ========================================== */
 
 header.navbar#navbar {
@@ -44,7 +45,7 @@ header.navbar#navbar {
     position: sticky !important;
     top: 12px !important;
     z-index: 1050 !important;
-    max-width: var(--max-width, 1280px) !important;
+    max-width: min(var(--max-width, 1280px), calc(100vw - 24px)) !important;
     margin: 12px auto !important;
     padding: 0 12px !important;
     background: var(--surface-glass, rgba(255, 255, 255, 0.8)) !important;
@@ -54,6 +55,7 @@ header.navbar#navbar {
     box-shadow: var(--shadow-glass, 0 8px 32px rgba(0, 0, 0, 0.08)) !important;
     border-radius: var(--radius-pill, 9999px) !important;
     transition: all 0.3s ease !important;
+    font-family: var(--font-family, 'Plus Jakarta Sans', sans-serif) !important;
 }
 
 header.navbar#navbar .navbar-inner {
@@ -63,6 +65,228 @@ header.navbar#navbar .navbar-inner {
     align-items: center !important;
     justify-content: space-between !important;
     gap: 16px !important;
+}
+
+/* Brand */
+header.navbar#navbar .brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    text-decoration: none !important;
+}
+
+header.navbar#navbar .brand-icon {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08)) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+}
+
+header.navbar#navbar .brand-icon img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+header.navbar#navbar .brand-name {
+    font-family: var(--font-display, 'Outfit', sans-serif) !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    color: var(--color-dark, #0F172A) !important;
+    line-height: 1.2 !important;
+}
+
+header.navbar#navbar .brand-tagline {
+    font-size: 11px !important;
+    color: var(--color-gray, #64748B) !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1.2 !important;
+}
+
+/* Navigation Links */
+header.navbar#navbar .nav-links {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+header.navbar#navbar .nav-link {
+    padding: 8px 14px !important;
+    border-radius: var(--radius-pill, 9999px) !important;
+    font-family: var(--font-family, 'Plus Jakarta Sans', sans-serif) !important;
+    font-size: var(--text-small, 14px) !important;
+    font-weight: 500 !important;
+    color: var(--color-gray-dark, #334155) !important;
+    text-decoration: none !important;
+    background: transparent !important;
+    border: none !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+    line-height: 1.4 !important;
+}
+
+header.navbar#navbar .nav-link:hover {
+    color: var(--color-primary, #3E6B3A) !important;
+    background-color: rgba(62, 107, 58, 0.06) !important;
+}
+
+header.navbar#navbar .nav-link.active {
+    color: var(--color-primary, #3E6B3A) !important;
+    background-color: rgba(62, 107, 58, 0.08) !important;
+    font-weight: 600 !important;
+}
+
+/* Nav Actions & Buttons */
+header.navbar#navbar .nav-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+}
+
+header.navbar#navbar .nav-actions .btn {
+    height: 40px !important;
+    padding: 0 18px !important;
+    border-radius: var(--radius-pill, 9999px) !important;
+    font-family: var(--font-family, 'Plus Jakarta Sans', sans-serif) !important;
+    font-size: var(--text-small, 14px) !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
+    border: 2px solid transparent !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
+    line-height: normal !important;
+}
+
+header.navbar#navbar .nav-actions .btn.btn-sm {
+    height: 36px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+}
+
+header.navbar#navbar .nav-actions .btn-ghost {
+    background: transparent !important;
+    color: var(--color-dark, #0F172A) !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+header.navbar#navbar .nav-actions .btn-ghost:hover {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: var(--color-primary, #3E6B3A) !important;
+}
+
+header.navbar#navbar .nav-actions .btn-primary {
+    background-color: var(--color-primary, #3E6B3A) !important;
+    color: #FFFFFF !important;
+    border-color: var(--color-primary, #3E6B3A) !important;
+    box-shadow: 0 2px 8px rgba(62, 107, 58, 0.2) !important;
+}
+
+header.navbar#navbar .nav-actions .btn-primary:hover {
+    background-color: var(--color-primary-hover, #345b31) !important;
+    border-color: var(--color-primary-hover, #345b31) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(62, 107, 58, 0.3) !important;
+}
+
+/* User & Admin Badges */
+.nav-user-badge {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--color-primary, #3E6B3A) !important;
+    max-width: 140px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    vertical-align: middle !important;
+}
+
+.nav-admin-badge {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #dc2626 !important;
+    background: #fee2e2 !important;
+    border: 1px solid #fecaca !important;
+    padding: 4px 10px !important;
+    border-radius: var(--radius-pill, 9999px) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    vertical-align: middle !important;
+}
+
+.nav-actions .btn-admin-portal,
+header.navbar#navbar .nav-actions .btn-admin-portal {
+    background-color: #dc2626 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25) !important;
+}
+
+.nav-actions .btn-admin-portal:hover,
+header.navbar#navbar .nav-actions .btn-admin-portal:hover {
+    background-color: #b91c1c !important;
+    border-color: #b91c1c !important;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Mobile Toggle & Drawer Parity */
+.mobile-drawer .drawer-actions .btn {
+    border-radius: var(--radius-pill, 9999px) !important;
+    font-family: var(--font-family, 'Plus Jakarta Sans', sans-serif) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.mobile-drawer .drawer-actions .btn-primary {
+    background-color: var(--color-primary, #3E6B3A) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+}
+
+.mobile-drawer .drawer-actions .btn-secondary {
+    background-color: #FFFFFF !important;
+    color: var(--color-primary, #3E6B3A) !important;
+    border: 2px solid var(--color-primary, #3E6B3A) !important;
+}
+
+.mobile-drawer .drawer-actions .btn-ghost {
+    background: transparent !important;
+    color: var(--color-dark, #0F172A) !important;
+    border: 2px solid transparent !important;
+}
+
+.mobile-drawer .drawer-actions .btn-admin-portal {
+    background-color: #dc2626 !important;
+    color: #FFFFFF !important;
+    border: none !important;
 }
 
 /* Buttons */

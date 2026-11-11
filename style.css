@@ -735,6 +735,34 @@ p,
   font-size: var(--text-small);
 }
 
+.nav-admin-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #dc2626;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+.nav-actions .btn-admin-portal {
+  background-color: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25) !important;
+}
+
+.nav-actions .btn-admin-portal:hover {
+  background-color: #b91c1c !important;
+  border-color: #b91c1c !important;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35) !important;
+  transform: translateY(-2px) !important;
+}
+
 /* Mobile toggle */
 .mobile-toggle {
   display: none;

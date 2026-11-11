@@ -370,31 +370,64 @@ async function updateNavUserUI() {
 
   if (!currentUser) return;
 
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'SUPER_ADMIN';
   const role = escapeHTML((currentUser.role || 'student').toUpperCase());
   const safeName = escapeHTML(currentUser.name || currentUser.email || 'User');
-  const userHTML = `
-    <span style="font-size: 13px; font-weight: 600; color: var(--color-primary); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">
-      <i class="fa-solid fa-user-circle"></i> ${safeName}
-    </span>
-    <a href="dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-gauge"></i> Dashboard</a>
-    <button id="btnNavLogout" class="btn btn-ghost btn-sm">Logout</button>
-  `;
 
-  if (navActions && !adminNavActions) navActions.innerHTML = userHTML;
-  if (mobileActions) {
-    mobileActions.innerHTML = `
-      <div style="font-size: 13px; font-weight: 600; color: var(--color-primary); padding: 8px 0;">
-        <i class="fa-solid fa-user-circle"></i> ${safeName} (${role})
+  let userHTML = '';
+  let mobileHTML = '';
+
+  if (isAdmin) {
+    userHTML = `
+      <span class="nav-admin-badge" style="font-size: 12px; font-weight: 700; color: #dc2626; background: #fee2e2; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 5px; vertical-align: middle;">
+        <i class="fa-solid fa-shield-halved"></i> ${safeName}
+      </span>
+      <a href="admin.html" class="btn btn-primary btn-sm btn-admin-portal" style="background: #dc2626; border-color: #dc2626; color: #ffffff;"><i class="fa-solid fa-shield-halved me-1"></i> Admin Portal</a>
+      <a href="dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-gauge me-1"></i> Dashboard</a>
+      <button id="btnNavLogout" class="btn btn-ghost btn-sm" title="Log Out">Logout</button>
+    `;
+    mobileHTML = `
+      <div style="font-size: 14px; font-weight: 700; color: #dc2626; padding: 8px 0; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-shield-halved"></i> ${safeName} <span style="font-size: 11px; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 9999px; font-weight: 800;">ADMIN</span>
       </div>
-      <a href="dashboard.html" class="btn btn-ghost btn-block" style="margin-bottom:8px;text-decoration:none;"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+      <a href="admin.html" class="btn btn-primary btn-block btn-admin-portal" style="background: #dc2626; border-color: #dc2626; color: #ffffff; margin-bottom: 8px; text-decoration: none;"><i class="fa-solid fa-shield-halved me-1"></i> Admin Portal</a>
+      <a href="dashboard.html" class="btn btn-ghost btn-block" style="margin-bottom: 8px; text-decoration: none;"><i class="fa-solid fa-gauge me-1"></i> Student Dashboard</a>
+      <button id="btnMobileLogout" class="btn btn-secondary btn-block">Logout</button>
+    `;
+  } else {
+    userHTML = `
+      <span class="nav-user-badge" style="font-size: 13px; font-weight: 600; color: var(--color-primary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; vertical-align: middle;">
+        <i class="fa-solid fa-user-circle"></i> ${safeName}
+      </span>
+      <a href="dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-gauge me-1"></i> Dashboard</a>
+      <button id="btnNavLogout" class="btn btn-ghost btn-sm" title="Log Out">Logout</button>
+    `;
+    mobileHTML = `
+      <div style="font-size: 14px; font-weight: 600; color: var(--color-primary); padding: 8px 0; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-user-circle"></i> ${safeName} <span style="font-size: 11px; background: rgba(62, 107, 58, 0.1); color: var(--color-primary); padding: 2px 8px; border-radius: 9999px; font-weight: 700;">STUDENT</span>
+      </div>
+      <a href="dashboard.html" class="btn btn-ghost btn-block" style="margin-bottom: 8px; text-decoration: none;"><i class="fa-solid fa-gauge me-1"></i> Dashboard</a>
       <button id="btnMobileLogout" class="btn btn-secondary btn-block">Logout</button>
     `;
   }
 
+  if (navActions && !adminNavActions) navActions.innerHTML = userHTML;
+  if (mobileActions) mobileActions.innerHTML = mobileHTML;
+
   const logoutHandler = async () => {
-    await window.BookAPI.logout();
-    showToast('Logged out successfully', 'success');
-    setTimeout(() => window.location.reload(), 800);
+    try {
+      if (window.BookAPI && typeof window.BookAPI.logout === 'function') {
+        await window.BookAPI.logout();
+      }
+    } catch (e) {}
+    localStorage.removeItem('rcti_gtu_current_user');
+    localStorage.removeItem('bb_access_token');
+    localStorage.removeItem('bb_refresh_token');
+    localStorage.removeItem('admin_mode');
+    if (typeof showToast === 'function') {
+      showToast('Logged out successfully', 'success');
+    }
+    setTimeout(() => window.location.reload(), 600);
   };
 
   document.getElementById('btnNavLogout')?.addEventListener('click', logoutHandler);
